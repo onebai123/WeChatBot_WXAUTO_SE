@@ -3762,5 +3762,5 @@ if __name__ == '__main__':
     
     Timer(1, open_browser).start()  # 延迟1秒确保服务器已启动
     
-    app.run(host="0.0.0.0", debug=False, port=PORT)
+    app.run(host="127.0.0.1", debug=False, port=PORT)
     
