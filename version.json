@@ -1,5 +1,5 @@
 {
-    "version": "3.24.4",
-    "last_update": "2025-09-30",
-    "description": "紧急修复，暂停端口开放服务"
+    "version": "3.24.5",
+    "last_update": "2025-10-01",
+    "description": "修复更新失败概率性报错bug"
 }
