@@ -72,6 +72,7 @@ class Updater:
         # 支持API Zipball的镜像 (测试成功率4/4)
         "https://gh.noki.eu.org/",      # 899ms,4/4成功
         "https://gh-proxy.com/",        # 1350ms,4/4成功
+        "https://gitpro.v1chat.cc/",    # 1350ms,4/4成功
         "https://gitpro.a3e.top/",      # 1350ms,4/4成功,官方维护
         "https://hub.tcpmini.news/",    # 1972ms,4/4成功,官方维护
         "https://tvv.tw/",              # 最快812ms,4/4成功
