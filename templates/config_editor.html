@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        // 全局URL前缀配置
+        window.URL_PREFIX = "{{ url_prefix }}";
+    </script>
 <!-----------------------------------------------------------------------
 - Copyright (C) 2025, iwyxdxl
 - Licensed under GNU GPL-3.0 or higher, see the LICENSE file for details.
@@ -93,6 +97,203 @@
         }
         .header-bar .header-title {
             flex-grow: 1;
+        }   
+        
+        /* 问号图标样式 - 透明设计 */
+        .help-bell {
+            position: relative;
+            background: transparent;
+            border: 2px solid transparent;
+            font-size: 26px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 6px 12px;
+            color: #667eea;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: 10px;
+            border-radius: 50%;
+            line-height: 1;
+        }
+        .help-bell:hover {
+            color: #5568d3;
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: scale(1.15);
+            animation: questionBounce 0.6s ease-in-out;
+        }
+        .help-bell:active {
+            transform: scale(0.95);
+        }
+        @keyframes questionBounce {
+            0%, 100% { transform: scale(1.15) translateY(0); }
+            25% { transform: scale(1.2) translateY(-5px); }
+            50% { transform: scale(1.18) translateY(0); }
+            75% { transform: scale(1.16) translateY(-3px); }
+        }
+        .help-bell .badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 10px;
+            height: 10px;
+            box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.3);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+                box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.3);
+            }
+            50% { 
+                opacity: 0.8; 
+                transform: scale(1.2);
+                box-shadow: 0 0 0 4px rgba(244, 67, 54, 0.1);
+            }
+        }
+        
+        /* 常见问题弹窗样式 - 从问号图标展开效果 */
+        .faq-modal {
+            display: none;
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            width: 400px;
+            max-width: 90vw;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            z-index: 2000;
+            transform-origin: top right;
+            opacity: 0;
+            transform: scale(0) translate(380px, -60px);
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .faq-modal.show {
+            display: block;
+            animation: expandFromIcon 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        .faq-modal.hiding {
+            animation: shrinkToIcon 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
+        @keyframes expandFromIcon {
+            0% {
+                opacity: 0;
+                transform: scale(0) translate(380px, -60px) rotate(15deg);
+            }
+            50% {
+                transform: scale(0.5) translate(190px, -30px) rotate(5deg);
+            }
+            80% {
+                transform: scale(1.05) translate(0, 0) rotate(-2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translate(0, 0) rotate(0deg);
+            }
+        }
+        @keyframes shrinkToIcon {
+            0% {
+                opacity: 1;
+                transform: scale(1) translate(0, 0) rotate(0deg);
+            }
+            20% {
+                transform: scale(0.95) translate(20px, -5px) rotate(2deg);
+            }
+            60% {
+                transform: scale(0.4) translate(200px, -35px) rotate(-10deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) translate(380px, -60px) rotate(-20deg);
+            }
+        }
+        .faq-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faq-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: white;
+        }
+        .faq-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .faq-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .faq-content {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .faq-item {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .faq-item:hover {
+            background: #e9ecef;
+            transform: translateX(4px);
+        }
+        .faq-item-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .faq-item-content {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .faq-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .faq-link:hover {
+            text-decoration: underline;
+        }
+        .faq-footer {
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+        .faq-footer p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+        }
+        .faq-footer strong {
+            color: #667eea;
+            font-size: 14px;
         }
         .header-bar .buttons {
             display: flex;
@@ -1220,6 +1421,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            // 检查是否需要弹出密码设置弹窗（开启外网访问但未设置密码）
+            checkPasswordRequirement();
+            
             // 初始化时检测WeAPIs节点
             updateWeAPIsUrls();
             
@@ -1856,7 +2060,7 @@
             async function initBotStatus() {
                 const button = document.getElementById('botButton');
                 try {
-                    const statusRes = await fetch('/bot_status?_=' + Date.now());
+                    const statusRes = await fetch(URL_PREFIX + '/bot_status?_=' + Date.now());
                     const { status } = await statusRes.json();
                     button.className = status === 'stopped' ? 'nav-button' : 'nav-button stop';
                     button.innerHTML = status === 'stopped' ? 'Start Bot' : 'Stop Bot';
@@ -1877,6 +2081,24 @@
                     alertDiv.style.display = 'none';
                 }, 5000);
             }
+            
+            // 检查是否需要弹出密码设置弹窗
+            async function checkPasswordRequirement() {
+                try {
+                    const response = await fetch(URL_PREFIX + '/api/get_config');
+                    const config = await response.json();
+                    
+                    // 如果开启外网访问但未设置密码，弹出密码设置弹窗
+                    if (config.ALLOW_OPEN_PORT && !config.PASSWORD_IS_VALID) {
+                        setTimeout(() => {
+                            showAlert('检测到已开启外网访问，请设置安全密码', false);
+                            openPasswordModalForSetup();
+                        }, 1000);
+                    }
+                } catch (e) {
+                    console.error('检查密码要求失败:', e);
+                }
+            }
 
             async function saveConfig() {
                 const form = document.getElementById('configForm');
@@ -1885,10 +2107,41 @@
                     showAlert("表单错误，无法保存配置。", false);
                     return false;
                 }
+                
+                // 检查是否开启了外网访问
+                const allowOpenPort = form.querySelector('input[name="ALLOW_OPEN_PORT"]');
+                if (allowOpenPort && allowOpenPort.checked) {
+                    // 检查当前是否已设置密码
+                    try {
+                        const configResponse = await fetch(URL_PREFIX + '/api/get_config');
+                        const config = await configResponse.json();
+                        const passwordIsValid = config.PASSWORD_IS_VALID || false;
+                        
+                        if (!passwordIsValid) {
+                            // 检查Bot状态
+                            const statusResponse = await fetch(URL_PREFIX + '/bot_status');
+                            const statusData = await statusResponse.json();
+                            
+                            if (statusData.running) {
+                                showAlert("检测到开启外网访问但未设置密码。请先停止Bot，设置密码后重新登录。", false);
+                                return false;
+                            }
+                            
+                            // Bot已停止，强制弹出密码设置弹窗
+                            // 传入true表示设置密码后需要重定向到登录页
+                            showAlert("开启外网访问需要设置安全密码", false);
+                            openPasswordModalForSetup(true);
+                            return false;
+                        }
+                    } catch (e) {
+                        console.error('检查密码状态失败:', e);
+                    }
+                }
+                
                 const formData = new FormData(form);
 
                 try {
-                    const response = await fetch('/submit_config', {
+                    const response = await fetch(URL_PREFIX + '/submit_config', {
                         method: 'POST',
                         body: formData,
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1922,20 +2175,11 @@
                 });
             }
             
-            // 密码设置按钮
+            // 密码设置按钮 - 打开弹窗
             const passwordSetupBtn = document.getElementById('passwordSetupBtn');
             if(passwordSetupBtn) {
-                passwordSetupBtn.addEventListener('click', async function() {
-                    // 先保存当前配置
-                    showAlert('正在保存配置...', true);
-                    const saveSuccess = await saveConfig();
-                    
-                    if (saveSuccess) {
-                        // 保存成功后跳转到密码设置页面
-                        window.location.href = '/password_setup?manual=true&return=config_editor';
-                    } else {
-                        showAlert('保存配置失败，无法跳转到密码设置页面', false);
-                    }
+                passwordSetupBtn.addEventListener('click', function() {
+                    openPasswordModal();
                 });
             }
             
@@ -1945,7 +2189,7 @@
                 resetDefaultConfigBtn.addEventListener('click', async function() {
                     if (confirm('确定要恢复所有配置到默认值吗？此操作不可撤销！')) {
                         try {
-                            const response = await fetch('/reset_default_config', {
+                            const response = await fetch(URL_PREFIX + '/reset_default_config', {
                                 method: 'POST',
                                 headers: getCSRFHeaders({ 'X-Requested-With': 'XMLHttpRequest' })
                             });
@@ -1989,7 +2233,7 @@
                 button.innerHTML = 'Processing...';
 
                 try {
-                    const statusRes = await fetch('/bot_status?_=' + Date.now());
+                    const statusRes = await fetch(URL_PREFIX + '/bot_status?_=' + Date.now());
                     const { status } = await statusRes.json();
 
                     if (status === 'stopped') {
@@ -2002,7 +2246,7 @@
                     }
 
                     const targetAction = status === 'stopped' ? 'start_bot' : 'stop_bot';
-                    const actionResponse = await fetch('/' + targetAction, { 
+                    const actionResponse = await fetch(URL_PREFIX + '/' + targetAction, { 
                         method: 'POST',
                         headers: getCSRFHeaders()
                     });
@@ -2012,7 +2256,7 @@
                         throw new Error(errorData.message || `操作失败: ${actionResponse.status}`);
                     }
 
-                    const newStatusRes = await fetch('/bot_status?_=' + Date.now());
+                    const newStatusRes = await fetch(URL_PREFIX + '/bot_status?_=' + Date.now());
                     const newStatusData = await newStatusRes.json();
 
                     button.className = newStatusData.status === 'stopped' ? 'nav-button' : 'nav-button stop';
@@ -2037,7 +2281,7 @@
                     console.error('操作失败:', error);
                     showAlert(error.message || '操作失败，请重试', false);
                     try {
-                        const currentStatusRes = await fetch('/bot_status?_=' + Date.now());
+                        const currentStatusRes = await fetch(URL_PREFIX + '/bot_status?_=' + Date.now());
                         const currentStatusData = await currentStatusRes.json();
                         button.className = currentStatusData.status === 'stopped' ? 'nav-button' : 'nav-button stop';
                         button.innerHTML = currentStatusData.status === 'stopped' ? 'Start Bot' : 'Stop Bot';
@@ -2053,7 +2297,7 @@
                 const button = document.getElementById('botButton');
                 const alertDiv = document.getElementById('backend-closed-alert');
                 try {
-                    const statusRes = await fetch('/bot_status?_=' + Date.now());
+                    const statusRes = await fetch(URL_PREFIX + '/bot_status?_=' + Date.now());
                     if (!statusRes.ok) throw new Error('请求失败');
                     const { status } = await statusRes.json();
                     button.className = status === 'stopped' ? 'nav-button' : 'nav-button stop';
@@ -2185,7 +2429,7 @@
                         }
                         // 若Bot已运行，确保日志流已连接（立即触发一次，不用等轮询）
                         try {
-                            fetch('/bot_status?_=' + Date.now())
+                            fetch(URL_PREFIX + '/bot_status?_=' + Date.now())
                                 .then(res => res.json())
                                 .then(statusJson => {
                                     if (statusJson && statusJson.status && statusJson.status !== 'stopped') {
@@ -2314,7 +2558,7 @@
                     }
                     
                     try {
-                        const response = await fetch('/create_prompt', {
+                        const response = await fetch(URL_PREFIX + '/create_prompt', {
                             method: 'POST',
                             headers: getCSRFHeaders({
                                 'Content-Type': 'application/x-www-form-urlencoded', // 保持这个格式
@@ -2423,7 +2667,7 @@
                     generateBtn.textContent = '生成中...';
                     
                     try {
-                        const response = await fetch('/generate_prompt', {
+                        const response = await fetch(URL_PREFIX + '/generate_prompt', {
                             method: 'POST',
                             headers: getCSRFHeaders({
                                 'Content-Type': 'application/json',
@@ -2598,7 +2842,7 @@
         async function loadReminders() {
             try {
                 if (isManualEditing) return;
-                const response = await fetch('/get_all_reminders?_=' + new Date().getTime());
+                const response = await fetch(URL_PREFIX + '/get_all_reminders?_=' + new Date().getTime());
                 if (!response.ok) throw new Error(`服务器错误: ${response.status}`);
                 const serverData = await response.json();
                 const container = document.getElementById('reminder-list');
@@ -2697,7 +2941,7 @@
             }).filter(p => p !== null);
 
             try {
-                const response = await fetch('/save_all_reminders', {
+                const response = await fetch(URL_PREFIX + '/save_all_reminders', {
                     method: 'POST', 
                     headers: getCSRFHeaders({'Content-Type': 'application/json'}),
                     body: JSON.stringify(remindersPayload)
@@ -2782,7 +3026,7 @@
             formData.append('config_file', file);
             
             try {
-                const response = await fetch('/import_config', { 
+                const response = await fetch(URL_PREFIX + '/import_config', { 
                     method: 'POST', 
                     headers: getCSRFHeaders(),
                     body: formData 
@@ -2871,7 +3115,7 @@
                 event.target.textContent = '导入中...';
                 event.target.disabled = true;
                 
-                const response = await fetch('/import_full_directory', { 
+                const response = await fetch(URL_PREFIX + '/import_full_directory', { 
                     method: 'POST',
                     headers: getCSRFHeaders(),
                     body: formData 
@@ -2905,7 +3149,7 @@
                 return;
             }
             try {
-                const response = await fetch(`/clear_chat_context/${encodeURIComponent(username)}`, {
+                const response = await fetch(`${URL_PREFIX}/clear_chat_context/${encodeURIComponent(username)}`, {
                     method: 'POST',
                     headers: getCSRFHeaders({
                         'X-Requested-With': 'XMLHttpRequest' // 如果你的后端需要
@@ -2932,7 +3176,7 @@
         async function fetchChatContextUsersFromServer() {
             try {
                 // 添加时间戳参数以防止浏览器缓存旧的API响应
-                const response = await fetch('/api/get_chat_context_users?_=' + new Date().getTime());
+                const response = await fetch(URL_PREFIX + '/api/get_chat_context_users?_=' + new Date().getTime());
                 if (!response.ok) {
                     console.warn('获取聊天上下文用户列表失败:', response.status);
                     return null;
@@ -3049,7 +3293,7 @@
         // 获取核心记忆文件列表
         async function fetchCoreMemoryFilesFromServer() {
             try {
-                const response = await fetch('/api/get_core_memory_files?_=' + new Date().getTime());
+                const response = await fetch(URL_PREFIX + '/api/get_core_memory_files?_=' + new Date().getTime());
                 if (!response.ok) {
                     console.warn('获取核心记忆文件列表失败:', response.status);
                     return null;
@@ -3220,7 +3464,7 @@
             document.getElementById('editChatContextModal').style.display = 'block';
             const container = document.getElementById('chatContextRoundsContainer');
             container.innerHTML = '<div style="color:#888; padding:30px 0; text-align:center;">加载中...</div>';
-            fetch(`/api/get_chat_context/${encodeURIComponent(username)}`)
+            fetch(`${URL_PREFIX}/api/get_chat_context/${encodeURIComponent(username)}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'success') {
@@ -3261,7 +3505,7 @@
                 document.getElementById('editChatContextError').style.display = 'block';
                 return;
             }
-            fetch(`/api/save_chat_context/${encodeURIComponent(username)}`, {
+            fetch(`${URL_PREFIX}/api/save_chat_context/${encodeURIComponent(username)}`, {
                 method: 'POST',
                 headers: getCSRFHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ context: JSON.stringify(arr) })
@@ -3512,7 +3756,7 @@
             const container = document.getElementById('coreMemoryItemsContainer');
             container.innerHTML = '<div style="color:#888; padding:30px 0; text-align:center;">加载中...</div>';
             
-            fetch(`/api/get_core_memory/${encodeURIComponent(filename)}`)
+            fetch(`${URL_PREFIX}/api/get_core_memory/${encodeURIComponent(filename)}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'success') {
@@ -3574,7 +3818,7 @@
                 return;
             }
             
-            fetch(`/api/save_core_memory/${encodeURIComponent(filename)}`, {
+            fetch(`${URL_PREFIX}/api/save_core_memory/${encodeURIComponent(filename)}`, {
                 method: 'POST',
                 headers: getCSRFHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ memories: memories })
@@ -3607,7 +3851,7 @@
             }
             
             try {
-                const response = await fetch(`/api/delete_core_memory/${encodeURIComponent(filename)}`, {
+                const response = await fetch(`${URL_PREFIX}/api/delete_core_memory/${encodeURIComponent(filename)}`, {
                     method: 'DELETE',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
@@ -3630,7 +3874,7 @@
         async function loadNpcSettingsFromBackend() {
             try {
                 console.log('从后端加载NPC配置...');
-                const response = await fetch('/api/npc/get_settings');
+                const response = await fetch(URL_PREFIX + '/api/npc/get_settings');
                 if (response.ok) {
                     const npcConfig = await response.json();
                     console.log('成功从后端加载NPC配置:', npcConfig);
@@ -3683,6 +3927,47 @@
     <div id="backend-closed-alert" class="backend-closed-alert">后台已关闭，请重新启动</div>
     <div id="config-alert" class="success-alert" style="display:none;"></div>
     
+    <!-- 常见问题弹窗 -->
+    <div id="faqModal" class="faq-modal">
+        <div class="faq-header">
+            <h3> 常见问题 & 解决方案</h3>
+            <button class="faq-close" onclick="closeFaqModalButton()">×</button>
+        </div>
+        <div class="faq-content">
+            <div class="faq-item">
+                <div class="faq-item-title">❌ 微信登录不上，提示版本太低怎么办？</div>
+                <div class="faq-item-content">
+                    <strong>解决方案：</strong>需要下载2个版本微信，先登录一次新版，再退出，登录旧版<br>
+                    <a href="https://s.apifox.cn/2e75fa29-1b5e-4e5c-b604-c89e95a6555d/7534473m0" class="faq-link" target="_blank">📖 查看详细教程</a>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-item-title">⚠️ Gemini空回复、ext、回复慢怎么办？</div>
+                <div class="faq-item-content">
+                    <strong>解决方案：</strong>查看详细教程解决Gemini相关问题<br>
+                    <a href="https://lcn9jodjzyl0.feishu.cn/wiki/Mz3iwutC2iG6TMkmR4qctQhVnHe" class="faq-link" target="_blank">📖 查看详细教程</a>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-item-title">🚫 显示有敏感词怎么办？</div>
+                <div class="faq-item-content">
+                    <strong>解决步骤：</strong>
+                    <ol style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.8;">
+                        <li>给AI发送 <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">/清除临时记忆</code> 或 <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">/cl</code></li>
+                        <li>AI回复"已清除当前聊天的临时上下文与临时记忆日志。"</li>
+                        <li>在临时记忆配置开启<strong>自动清理敏感词</strong></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="faq-footer">
+            <p>🤔 以上方案无法解决您的问题？</p>
+            <p><strong>加入交流群：1031636957</strong></p>
+        </div>
+    </div>
+    
     <button id="mobileMenuToggle">☰</button> 
 
     <div class="header-bar">
@@ -3690,15 +3975,16 @@
         <div class="buttons">
             <button id="botButton" class="nav-button">Start Bot</button>
             <button type="submit" form="configForm" id="saveConfigButton" class="nav-button" style="background-color: #4CAF50;">保存配置</button>
-                        <a href="{{ url_for('quick_start') }}" class="nav-button" style="background-color: #ff9800;">快速上手</a>
+                        <a href="{{ url_for('main.quick_start') }}" class="nav-button" style="background-color: #ff9800;">快速上手</a>
             <button type="button" id="importButton" class="nav-button" style="background-color: #2196F3;">导入配置</button>      
             <a href="https://ciu4ws3raf1.feishu.cn/docx/EgE7d5JvtopzmIxYZMKcLU2xnge?from=from_copylink"
                class="nav-button" target="_blank" style="background-color: #03A9F4;">帮助文档</a>
-           <button id="oneKeyDiagnosticButton" class="nav-button" style="background-color:#f44336;">报错一键检测</button>
+           <button id="oneKeyDiagnosticButton" class="nav-button" style="background-color:#f44336;">报错检测</button>
+           <button id="helpBellButton" class="help-bell" title="常见问题">❓<span class="badge"></span></button>
 <script>
 document.getElementById('oneKeyDiagnosticButton').addEventListener('click', async function() {
     try {
-        const response = await fetch('/run_one_key_detection');
+        const response = await fetch(URL_PREFIX + '/run_one_key_detection');
         if (!response.ok) throw new Error('检测失败，请稍后重试。');
         const result = await response.text();
         console.log(result || '检测工具启动中');
@@ -4838,8 +5124,8 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
             window.isLogStreamInitialized = true;
             
             try {
-                console.log('创建新的 EventSource: /stream');
-                const es = new EventSource('/stream');
+                console.log('创建新的 EventSource: ' + URL_PREFIX + '/stream');
+                const es = new EventSource(URL_PREFIX + '/stream');
                 window.currentEventSource = es;
                 console.log('EventSource 已创建，当前 ReadyState:', es.readyState);
                 
@@ -5154,7 +5440,7 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
                 const localStorageData = { npcs: names };
                 localStorage.setItem('npcSettings', JSON.stringify(localStorageData));
 
-                const response = await fetch('/api/npc/save_settings', {
+                const response = await fetch(URL_PREFIX + '/api/npc/save_settings', {
                     method: 'POST',
                     headers: getCSRFHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify(configData)
@@ -5169,6 +5455,380 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
             }
         }
 
+    </script>
+
+    <!-- 修改密码弹窗 -->
+    <div id="changePasswordModal" class="password-modal" style="display:none;">
+        <div class="password-modal-content">
+            <span class="password-modal-close">&times;</span>
+            <h2 id="passwordModalTitle" style="margin-top:0; color:#333;">修改登录密码</h2>
+            <form id="changePasswordForm">
+                <div class="password-form-group" id="oldPasswordGroup">
+                    <label>旧密码:</label>
+                    <input type="password" id="oldPassword" autocomplete="current-password">
+                </div>
+                <div class="password-form-group">
+                    <label id="newPasswordLabel">新密码:</label>
+                    <input type="password" id="newPassword" autocomplete="new-password" required>
+                    <small style="color:#666; font-size:12px;">至少8位，包含大小写字母和数字</small>
+                </div>
+                <div class="password-form-group">
+                    <label id="confirmPasswordLabel">确认新密码:</label>
+                    <input type="password" id="confirmPassword" autocomplete="new-password" required>
+                </div>
+                <div id="passwordChangeError" style="color:red; font-size:14px; margin:10px 0; display:none;"></div>
+                <div id="passwordChangeSuccess" style="color:green; font-size:14px; margin:10px 0; display:none;"></div>
+                <div class="password-form-buttons">
+                    <button type="submit" class="password-btn password-btn-primary">修改密码</button>
+                    <button type="button" class="password-btn password-btn-secondary" onclick="closePasswordModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .password-modal {
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .password-modal-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .password-modal-close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .password-modal-close:hover {
+            color: #333;
+        }
+        
+        .password-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .password-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .password-form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        
+        .password-form-group input:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 5px rgba(33,150,243,0.3);
+        }
+        
+        .password-form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        .password-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .password-btn-primary {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .password-btn-primary:hover {
+            background-color: #1976D2;
+        }
+        
+        .password-btn-secondary {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+        
+        .password-btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+
+    <script>
+        let isFirstTimeSetup = false;  // 标记是否是首次设置密码
+        let shouldSaveConfigAfterPassword = false;  // 标记设置密码后是否需要保存配置
+        
+        // 打开密码修改弹窗（已有密码，需要输入旧密码）
+        function openPasswordModal() {
+            isFirstTimeSetup = false;
+            shouldSaveConfigAfterPassword = false;
+            document.getElementById('passwordModalTitle').textContent = '修改登录密码';
+            document.getElementById('oldPasswordGroup').style.display = 'block';
+            document.getElementById('oldPassword').required = true;
+            document.getElementById('newPasswordLabel').textContent = '新密码:';
+            document.getElementById('confirmPasswordLabel').textContent = '确认新密码:';
+            document.querySelector('.password-btn-primary').textContent = '修改密码';
+            
+            document.getElementById('changePasswordModal').style.display = 'flex';
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('passwordChangeError').style.display = 'none';
+            document.getElementById('passwordChangeSuccess').style.display = 'none';
+        }
+        
+        // 打开密码设置弹窗（首次设置，不需要旧密码）
+        // saveConfigAfter: 是否在设置密码后保存配置（从"保存配置"按钮触发时为true）
+        function openPasswordModalForSetup(saveConfigAfter = false) {
+            isFirstTimeSetup = true;
+            shouldSaveConfigAfterPassword = saveConfigAfter;
+            document.getElementById('passwordModalTitle').textContent = '设置安全密码';
+            document.getElementById('oldPasswordGroup').style.display = 'none';
+            document.getElementById('oldPassword').required = false;
+            document.getElementById('newPasswordLabel').textContent = '密码:';
+            document.getElementById('confirmPasswordLabel').textContent = '确认密码:';
+            document.querySelector('.password-btn-primary').textContent = '设置密码并保存';
+            
+            document.getElementById('changePasswordModal').style.display = 'flex';
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('passwordChangeError').style.display = 'none';
+            document.getElementById('passwordChangeSuccess').style.display = 'none';
+        }
+        
+        // 关闭密码修改弹窗
+        function closePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        }
+        
+        // 点击关闭按钮
+        document.querySelector('.password-modal-close').onclick = closePasswordModal;
+        
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('changePasswordModal');
+            if (event.target === modal) {
+                closePasswordModal();
+            }
+        }
+        
+        // 提交密码修改表单
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const errorDiv = document.getElementById('passwordChangeError');
+            const successDiv = document.getElementById('passwordChangeSuccess');
+            
+            // 隐藏之前的提示
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch(URL_PREFIX + '/api/change_password', {
+                    method: 'POST',
+                    headers: getCSRFHeaders({
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }),
+                    body: JSON.stringify({
+                        old_password: oldPassword,
+                        new_password: newPassword,
+                        confirm_password: confirmPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    successDiv.textContent = data.message || '密码设置成功！';
+                    successDiv.style.display = 'block';
+                    
+                    // 如果需要在设置密码后保存配置（从"保存配置"按钮触发）
+                    if (shouldSaveConfigAfterPassword) {
+                        successDiv.innerHTML = '✅ 密码设置成功！<br><br>' +
+                            '📌 下一步操作：<br>' +
+                            '1. 将跳转到登录页，使用新密码重新登录<br>' +
+                            '2. 登录后重新进入配置页面<br>' +
+                            '3. 点击"保存配置"按钮保存其他设置<br><br>' +
+                            '⏰ 3秒后自动跳转...';
+                        
+                        setTimeout(() => {
+                            closePasswordModal();
+                            // 重定向到登录页
+                            window.location.href = URL_PREFIX + '/login';
+                        }, 3000);
+                    } else {
+                        // 不需要保存配置，直接关闭弹窗
+                        setTimeout(() => {
+                            closePasswordModal();
+                            const message = isFirstTimeSetup ? '密码设置成功！' : '密码修改成功！';
+                            showAlert(message, true);
+                        }, 1500);
+                    }
+                } else {
+                    errorDiv.textContent = data.error || '操作失败';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('操作失败:', error);
+                errorDiv.textContent = '操作失败：网络错误';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+    
+    <!-- 常见问题弹窗控制脚本 -->
+    <script>
+        // FAQ弹窗控制
+        let faqAutoCloseTimer = null;
+        let faqIsAnimating = false;
+        
+        function showFaqModal() {
+            if (faqIsAnimating) return;
+            
+            const modal = document.getElementById('faqModal');
+            faqIsAnimating = true;
+            
+            // 移除可能存在的hiding类
+            modal.classList.remove('hiding');
+            
+            // 显示并添加show类触发展开动画
+            modal.style.display = 'block';
+            // 强制重排以确保动画触发
+            modal.offsetHeight;
+            modal.classList.add('show');
+            
+            // 动画完成后重置标志
+            setTimeout(() => {
+                faqIsAnimating = false;
+            }, 500);
+            
+            // 清除之前的定时器
+            if (faqAutoCloseTimer) {
+                clearTimeout(faqAutoCloseTimer);
+            }
+            
+            // 10秒后自动关闭
+            faqAutoCloseTimer = setTimeout(() => {
+                closeFaqModal();
+            }, 10000);
+        }
+        
+        function closeFaqModal() {
+            if (faqIsAnimating) return;
+            
+            const modal = document.getElementById('faqModal');
+            faqIsAnimating = true;
+            
+            // 移除show类，添加hiding类触发收缩动画
+            modal.classList.remove('show');
+            modal.classList.add('hiding');
+            
+            // 等待收缩动画完成后隐藏元素
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.classList.remove('hiding');
+                faqIsAnimating = false;
+            }, 400);
+            
+            // 移除badge提示
+            const badge = document.querySelector('.help-bell .badge');
+            if (badge) {
+                badge.style.display = 'none';
+            }
+            
+            if (faqAutoCloseTimer) {
+                clearTimeout(faqAutoCloseTimer);
+                faqAutoCloseTimer = null;
+            }
+        }
+        
+        // 铃铛按钮点击事件
+        document.getElementById('helpBellButton').addEventListener('click', function(e) {
+            e.stopPropagation();
+            const modal = document.getElementById('faqModal');
+            if (modal.classList.contains('show')) {
+                closeFaqModal();
+            } else {
+                showFaqModal();
+            }
+        });
+        
+        // 页面加载完成后自动显示弹窗（每次刷新都显示）
+        document.addEventListener('DOMContentLoaded', function() {
+            // 延迟1秒等待页面渲染完成后立即弹出，10秒后自动关闭
+            setTimeout(() => {
+                showFaqModal();
+            }, 1000);
+        });
+        
+        // 点击弹窗外部关闭
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('faqModal');
+            const bellButton = document.getElementById('helpBellButton');
+            
+            if (modal.classList.contains('show') && 
+                !modal.contains(e.target) && 
+                !bellButton.contains(e.target)) {
+                closeFaqModal();
+            }
+        });
+        
+        // 点击关闭按钮
+        function closeFaqModalButton() {
+            closeFaqModal();
+        }
     </script>
 
 </body>

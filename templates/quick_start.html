@@ -311,7 +311,7 @@
 <body>
     <div class="container">
         <h1>WeChatBot 快速上手配置</h1>
-        <form method="post" action="{{ url_for('quick_start') }}">
+        <form method="post" action="{{ url_for('main.quick_start') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <h2>1. API 配置</h2>
             <div class="form-group">
@@ -397,7 +397,7 @@
 
             <div class="button-group">
                 <button type="submit">保存并进入完整配置页面</button>
-                <a href="{{ url_for('index', skipped='true') }}" class="button-like skip">跳过快速配置</a>
+                <a href="{{ url_for('main.index', skipped='true') }}" class="button-like skip">跳过快速配置</a>
             </div>
         </form>
     </div>

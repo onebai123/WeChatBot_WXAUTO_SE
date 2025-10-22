@@ -19,7 +19,7 @@
 # along with WeChatBot.  If not, see <http://www.gnu.org/licenses/>.
 # ***********************************************************************
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session, Response, send_file, abort, stream_with_context
+from flask import Flask, Blueprint, render_template, request, redirect, url_for, jsonify, session, Response, send_file, abort, stream_with_context
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -49,6 +49,9 @@ from datetime import datetime
 import zipfile
 
 app = Flask(__name__)
+
+# 创建 Blueprint 用于路由前缀
+bp = Blueprint('main', __name__)
 
 # 确保 HTML 响应默认使用 UTF-8 编码（兼容部分浏览器/工具对 charset 的要求）
 @app.after_request
@@ -483,17 +486,19 @@ def get_chat_context_users():
         app.logger.error(f"读取 chat_contexts.json 失败: {e}")
         return []
 
-@app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")  # 速率限制：每分钟最多10次登录尝试
+@bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute", methods=['POST'])  # 仅对POST限制，避免重定向触发429
 def login():
     config = parse_config()
     client_ip = request.remote_addr
     
     password_is_valid = config.get('PASSWORD_IS_VALID', False)
+    allow_open_port = config.get('ALLOW_OPEN_PORT', False)
     
-    # 未设置密码时，强制跳转到密码设置页面
+    # 如果未设置密码，直接跳转到首页（首页会弹窗要求设置密码）
     if not password_is_valid:
-        return redirect(url_for('password_setup', force='true'))
+        session['logged_in'] = True  # 自动登录
+        return redirect(url_for('main.index'))
     
     # 检查IP是否被锁定（安全修复）
     if is_ip_locked(client_ip):
@@ -510,7 +515,7 @@ def login():
             session['logged_in'] = True
             clear_login_attempts(client_ip)  # 清除登录失败记录
             app.logger.info(f"用户从 {client_ip} 成功登录")
-            return redirect(url_for('index'))
+            return redirect(url_for('main.index'))
         else:
             record_failed_login(client_ip)  # 记录失败尝试
             remaining = MAX_LOGIN_ATTEMPTS - len(login_attempts[client_ip])
@@ -525,81 +530,116 @@ def login():
     
     return render_template('login.html')
 
-@app.route('/logout')
+@bp.route('/logout')
 def logout():
     session.pop('logged_in', None)
-    return redirect(url_for('login'))
-
-@app.route('/password_setup', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")  # 速率限制：防止暴力破解密码设置
-def password_setup():
-    config = parse_config()
-    password_is_valid = config.get('PASSWORD_IS_VALID', False)
-    
-    # 获取返回目标参数
-    return_to = request.args.get('return', 'login')
-    
-    # 如果已设置密码：未登录且非强制重置时，先去登录
-    if password_is_valid:
-        if not session.get('logged_in') and request.args.get('force') != 'true':
-            return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        password = request.form.get('password', '')
-        confirm_password = request.form.get('confirm_password', '')
-        
-        # 验证密码复杂度
-        if len(password) < 8:
-            return render_template('password_setup.html', error="密码长度不能少于8位", return_to=return_to, allow_skip=False)
-        
-        if not any(c.isupper() for c in password):
-            return render_template('password_setup.html', error="密码必须包含大写字母", return_to=return_to, allow_skip=False)
-        
-        if not any(c.islower() for c in password):
-            return render_template('password_setup.html', error="密码必须包含小写字母", return_to=return_to, allow_skip=False)
-        
-        if not any(c.isdigit() for c in password):
-            return render_template('password_setup.html', error="密码必须包含数字", return_to=return_to, allow_skip=False)
-        
-        if password != confirm_password:
-            return render_template('password_setup.html', error="两次输入的密码不一致", return_to=return_to, allow_skip=False)
-        
-        # 更新配置文件
-        try:
-            update_config({
-                'LOGIN_PASSWORD': password,
-                'PASSWORD_IS_VALID': True
-            })
-            
-            # 设置成功后，引导用户去登录
-            redirect_url = "/login"
-            success_msg = "密码设置成功！请使用新密码登录。"
-            return render_template('password_setup.html', success=success_msg, redirect_url=redirect_url, return_to=return_to)
-        except Exception as e:
-            return render_template('password_setup.html', error=f"密码设置失败：{str(e)}", return_to=return_to, allow_skip=not password_is_valid)
-    
-    # GET请求：未设置密码时禁止跳过
-    allow_skip = False if not password_is_valid else (request.args.get('manual') == 'true')
-    return render_template('password_setup.html', allow_skip=allow_skip, return_to=return_to)
+    return redirect(url_for('main.login'))
 
 def login_required(f):
+    """登录验证装饰器"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # 避免重定向循环：如果当前就是login或logout，直接放行
+        if request.endpoint in ['main.login', 'main.logout']:
+            return f(*args, **kwargs)
+        
         config = parse_config()
         password_is_valid = config.get('PASSWORD_IS_VALID', False)
+        allow_open_port = config.get('ALLOW_OPEN_PORT', False)
         
         # 全局规则：
-        # - 若未设置密码，则强制跳转到密码设置页面
+        # - 若开启外网访问但未设置密码，允许访问首页（首页会弹窗要求设置密码）
         # - 若已设置密码但未登录，则要求先登录
-        if not password_is_valid:
-            return redirect(url_for('password_setup', force='true'))
-        if not session.get('logged_in'):
-            return redirect(url_for('login'))
+        # - 若仅本地访问且未设置密码，允许直接访问（跳过认证）
+        if allow_open_port and not password_is_valid:
+            # 开启外网访问但未设置密码：允许访问首页，首页会自动弹出密码设置弹窗
+            return f(*args, **kwargs)
+        
+        if password_is_valid and not session.get('logged_in'):
+            # 已设置密码但未登录
+            return redirect(url_for('main.login'))
         
         return f(*args, **kwargs)
     return decorated_function
 
-@app.route('/start_bot', methods=['POST'])
+@bp.route('/api/get_config', methods=['GET'])
+@limiter.exempt
+@login_required
+def api_get_config():
+    """API: 获取配置状态（仅返回必要的状态信息）"""
+    try:
+        config = parse_config()
+        return jsonify({
+            'PASSWORD_IS_VALID': config.get('PASSWORD_IS_VALID', False),
+            'ALLOW_OPEN_PORT': config.get('ALLOW_OPEN_PORT', False)
+        }), 200
+    except Exception as e:
+        app.logger.error(f"获取配置失败: {e}")
+        return jsonify({'error': '获取配置失败'}), 500
+
+@bp.route('/api/change_password', methods=['POST'])
+@login_required
+@limiter.limit("5 per minute")  # 严格速率限制：防止暴力破解
+def api_change_password():
+    """API: 修改密码（首次设置或修改密码）"""
+    try:
+        data = request.get_json()
+        old_password = data.get('old_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        confirm_password = data.get('confirm_password', '').strip()
+        
+        # 新密码和确认密码必填
+        if not new_password or not confirm_password:
+            return jsonify({'error': '密码和确认密码不能为空'}), 400
+        
+        # 验证旧密码
+        config = parse_config()
+        current_password = config.get('LOGIN_PASSWORD', '')
+        password_is_valid = config.get('PASSWORD_IS_VALID', False)
+        
+        # 如果已设置密码，必须验证旧密码
+        if password_is_valid:
+            if not old_password:
+                return jsonify({'error': '请输入旧密码'}), 400
+            if old_password != current_password:
+                return jsonify({'error': '旧密码错误'}), 403
+        
+        # 验证新密码复杂度
+        if len(new_password) < 8:
+            return jsonify({'error': '密码长度不能少于8位'}), 400
+        if not any(c.isupper() for c in new_password):
+            return jsonify({'error': '密码必须包含大写字母'}), 400
+        if not any(c.islower() for c in new_password):
+            return jsonify({'error': '密码必须包含小写字母'}), 400
+        if not any(c.isdigit() for c in new_password):
+            return jsonify({'error': '密码必须包含数字'}), 400
+        
+        if new_password != confirm_password:
+            return jsonify({'error': '两次输入的密码不一致'}), 400
+        
+        # 更新密码
+        update_config({
+            'LOGIN_PASSWORD': new_password,
+            'PASSWORD_IS_VALID': True
+        })
+        
+        # 记录日志，区分首次设置和修改密码
+        if password_is_valid:
+            app.logger.info(f"用户 {request.remote_addr} 修改密码成功")
+            message = '密码修改成功'
+        else:
+            app.logger.info(f"用户 {request.remote_addr} 首次设置密码成功")
+            message = '密码设置成功'
+        
+        return jsonify({'success': True, 'message': message}), 200
+        
+    except Exception as e:
+        app.logger.error(f"修改密码失败: {e}")
+        return jsonify({'error': f'修改密码失败: {str(e)}'}), 500
+
+# password_setup路由已移除，改为在首页自动弹出密码设置弹窗
+
+@bp.route('/start_bot', methods=['POST'])
 @login_required
 @limiter.limit("10 per minute")  # 速率限制：防止频繁启动
 def start_bot():
@@ -632,7 +672,7 @@ def start_bot():
         )
     return {'status': 'started'}, 200
 
-@app.route('/stop_bot', methods=['POST'])
+@bp.route('/stop_bot', methods=['POST'])
 @login_required
 @limiter.limit("10 per minute")  # 速率限制：防止频繁停止
 def stop_bot():
@@ -670,7 +710,8 @@ def stop_bot():
         # 最终状态由 stop_bot_process 设置 current_bot_pid 和 last_heartbeat_time
         return {'status': 'stopped'}, 200
     
-@app.route('/bot_status')
+@bp.route('/bot_status')
+@limiter.exempt  # 豁免速率限制：状态检查需要频繁轮询
 @login_required
 def bot_status():
     global bot_process, last_heartbeat_time, current_bot_pid
@@ -701,7 +742,7 @@ def bot_status():
 
     return {"status": current_status}
 
-@app.route('/submit_config', methods=['POST'])
+@bp.route('/submit_config', methods=['POST'])
 @login_required
 @limiter.limit("30 per minute")  # 速率限制：防止频繁提交配置
 def submit_config():
@@ -800,7 +841,14 @@ def submit_config():
                     except (ValueError, TypeError) as e: 
                         new_values_for_config_py[key_from_form] = original_type_source 
                         app.logger.warning(f"配置项 {key_from_form} 的值 '{value_from_form}' 无法转换为浮点数，已保留旧值。错误: {e}")
-                elif isinstance(original_type_source, int) or key_from_form in ["GROUP_CHAT_RESPONSE_PROBABILITY", "RESTART_INACTIVITY_MINUTES", "ASSISTANT_MAX_TOKEN", "FORUM_MAX_TOKEN"]:
+                elif isinstance(original_type_source, int) or key_from_form in [
+                    "GROUP_CHAT_RESPONSE_PROBABILITY", "RESTART_INACTIVITY_MINUTES", 
+                    "ASSISTANT_MAX_TOKEN", "FORUM_MAX_TOKEN",
+                    "MAX_GROUPS", "MAX_TOKEN", "QUEUE_WAITING_TIME", 
+                    "EMOJI_SENDING_PROBABILITY", "MAX_MESSAGE_LOG_ENTRIES", 
+                    "MAX_MEMORY_NUMBER", "PORT", "ONLINE_API_MAX_TOKEN",
+                    "REQUESTS_TIMEOUT", "MAX_WEB_CONTENT_LENGTH"
+                ]:
                     try:
                         # 先确保值是字符串类型，然后进行转换
                         str_value = str(value_from_form).strip()
@@ -976,7 +1024,7 @@ def stop_bot_process(pid_to_kill=None):
     elif current_bot_pid:
         app.logger.warning(f"调用 stop_bot_process 后，current_bot_pid ({current_bot_pid}) 仍有值。可能存在未完全停止的实例或状态不同步。但心跳已重置。")
 
-@app.route('/bot_heartbeat', methods=['POST'])
+@bp.route('/bot_heartbeat', methods=['POST'])
 @csrf.exempt  # CSRF豁免：bot.py的心跳请求，使用其他验证方式
 @limiter.limit("120 per minute")  # 速率限制：每分钟最多120次心跳
 def bot_heartbeat():
@@ -1103,7 +1151,7 @@ def update_config(new_values):
             # 捕获并记录异常，以便排查问题
             raise Exception(f"更新配置文件失败: {e}")
 
-@app.route('/quick_start', methods=['GET', 'POST'])
+@bp.route('/quick_start', methods=['GET', 'POST'])
 @login_required
 def quick_start():
     if request.method == 'POST':
@@ -1169,10 +1217,10 @@ def quick_start():
             new_values['ENABLE_AUTO_MESSAGE'] = 'ENABLE_AUTO_MESSAGE' in request.form
             
             update_config(new_values)
-            return redirect(url_for('index'))
+            return redirect(url_for('main.index'))
         except Exception as e:
             app.logger.error(f"快速配置保存错误: {e}")
-            return redirect(url_for('quick_start'))
+            return redirect(url_for('main.quick_start'))
 
     try:
         config = parse_config()
@@ -1218,7 +1266,7 @@ def quick_start():
         app.logger.error(f"加载快速配置页面错误: {e}")
         return "加载快速配置页面错误，请检查日志。"
 
-@app.route('/', methods=['GET', 'POST'])
+@bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     # 在处理 POST 或渲染模板之前检查 API KEY
@@ -1229,7 +1277,7 @@ def index():
     if not current_config_check.get('DEEPSEEK_API_KEY', '').strip():
         # 只有当不是明确跳过，并且是GET请求时，才重定向到 quick_start
         if request.method == 'GET' and not was_skipped:
-             return redirect(url_for('quick_start'))
+             return redirect(url_for('main.quick_start'))
 
     if request.method == 'POST':
         try:
@@ -1337,7 +1385,7 @@ def index():
             config_path = os.path.join(script_dir, 'config.py')
             validate_config_types(config_path)
             
-            return redirect(url_for('index')) # 保存后重定向到自身以刷新GET请求
+            return redirect(url_for('main.index')) # 保存后重定向到自身以刷新GET请求
         except Exception as e:
             app.logger.error(f"主配置页保存配置错误: {e}")
             # 渲染错误信息，或重定向到GET并带上错误提示
@@ -1375,7 +1423,7 @@ def safe_filename(filename):
     filename = filename.replace('../', '_').replace('/', '_')
     return filename
 
-@app.route('/edit_prompt/<filename>', methods=['GET', 'POST'])
+@bp.route('/edit_prompt/<filename>', methods=['GET', 'POST'])
 @login_required
 def edit_prompt(filename):
     safe_dir = os.path.abspath('prompts')
@@ -1442,7 +1490,7 @@ def edit_prompt(filename):
         app.logger.error(f"读取Prompt失败: {str(e)}")
         return jsonify({'error': f'读取Prompt失败: {str(e)}'}), 500
 
-@app.route('/create_prompt', methods=['GET', 'POST'])
+@bp.route('/create_prompt', methods=['GET', 'POST'])
 @login_required
 def create_prompt():
     if request.method == 'POST':
@@ -1473,7 +1521,7 @@ def create_prompt():
     
     return "此端点用于POST创建Prompt，或GET请求已被整合处理。", 405 # Method Not Allowed for GET
 
-@app.route('/delete_prompt/<filename>', methods=['POST'])
+@bp.route('/delete_prompt/<filename>', methods=['POST'])
 @login_required
 @limiter.limit("20 per minute")  # 速率限制：防止滥用删除
 def delete_prompt(filename):
@@ -1495,7 +1543,7 @@ def delete_prompt(filename):
             return str(e), 500
     return "无效文件", 400
 
-@app.route('/generate_prompt', methods=['POST'])
+@bp.route('/generate_prompt', methods=['POST'])
 @login_required
 def generate_prompt():
     try:
@@ -1522,8 +1570,8 @@ def generate_prompt():
             "\n\n# 性格"
             "\n...。"
             "\n\n# 输出示例"
-            "\n...\...\..."
-            "\n...\..."
+            "\n...\\...\\..."
+            "\n...\\..."
             "\n\n# 喜好"
             "\n...。\n"
         )  # 固定提示词
@@ -1553,7 +1601,8 @@ def generate_prompt():
         return jsonify({'error': str(e)}), 500
 
 # 获取所有提醒 
-@app.route('/get_all_reminders')
+@bp.route('/get_all_reminders')
+@limiter.exempt  # 豁免速率限制：需要定时刷新
 @login_required
 def get_all_reminders():
     """
@@ -1583,7 +1632,7 @@ def get_all_reminders():
 
 
 # 重命名: 保存所有提醒 (覆盖整个文件)
-@app.route('/save_all_reminders', methods=['POST']) # <--- Route Renamed
+@bp.route('/save_all_reminders', methods=['POST']) # <--- Route Renamed
 @login_required
 def save_all_reminders():
     """
@@ -1668,7 +1717,7 @@ def save_all_reminders():
         app.logger.error(f'提醒保存失败: {str(e)}')
         return jsonify({'error': f'服务器内部错误: {str(e)}'}), 500
 
-@app.route('/import_config', methods=['POST'])
+@bp.route('/import_config', methods=['POST'])
 @login_required
 @limiter.limit("5 per hour")  # 速率限制：导入操作限制更严格
 def import_config():
@@ -2013,7 +2062,7 @@ def import_files_data(files_dict):
         app.logger.error(f"导入文件数据失败: {str(e)}")
         raise Exception(f"导入失败: {str(e)}")
 
-@app.route('/import_full_directory', methods=['POST'])
+@bp.route('/import_full_directory', methods=['POST'])
 @login_required
 @limiter.limit("3 per hour")  # 速率限制：完整目录导入限制非常严格
 def import_full_directory():
@@ -2103,7 +2152,7 @@ def import_full_directory():
         app.logger.error(f"完整目录导入失败: {str(e)}")
         return jsonify({'error': f'导入失败: {str(e)}'}), 500
 
-@app.route('/reset_default_config', methods=['POST'])
+@bp.route('/reset_default_config', methods=['POST'])
 @login_required
 def reset_default_config():
     global bot_process
@@ -2156,7 +2205,7 @@ logging.getLogger().addHandler(web_handler)
 # 发送初始化日志，验证日志系统正常工作
 app.logger.info("配置编辑器日志系统已初始化")
 
-@app.route('/stream')
+@bp.route('/stream')
 @limiter.exempt  # SSE长连接不计入默认速率限制，避免返回429/500
 @login_required
 def stream():
@@ -2222,18 +2271,29 @@ def stream():
 
     return response
 
-@app.route('/api/log', methods=['POST'])
+@bp.route('/api/log', methods=['POST'])
 @csrf.exempt  # CSRF豁免：bot.py的日志上传，使用内容验证
 @limiter.limit("200 per minute")  # 速率限制：每分钟最多200条日志
 # 注意：此端点不使用 @login_required，因为 bot.py 进程需要无认证访问
 # 安全性通过 localhost 限制和速率限制保证
 def receive_bot_log():
     try:
-        # 增加Content-Type检查
+        # 安全检查1：验证Content-Type
         if not request.is_json:
             app.logger.warning(f"收到非JSON请求，Content-Type: {request.content_type}")
             return jsonify({'error': 'Unsupported Media Type'}), 415
-
+        
+        # 安全检查2：仅接受本地请求或已登录用户
+        client_ip = request.remote_addr
+        if client_ip not in ['127.0.0.1', 'localhost', '::1']:
+            # 检查是否开启外网访问
+            config = parse_config()
+            if config.get('ALLOW_OPEN_PORT', False):
+                # 外网访问时需要登录验证
+                if not session.get('logged_in'):
+                    app.logger.warning(f"未授权的日志上传请求来自: {client_ip}")
+                    return jsonify({'error': 'Unauthorized'}), 401
+        
         # 支持两种格式：单个日志或日志数组
         if 'logs' in request.json:  # 批量日志
             logs_data = request.json.get('logs', [])
@@ -2275,13 +2335,13 @@ def receive_bot_log():
         app.logger.error(f"日志接收失败: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/get_chat_context_users', methods=['GET'])
+@bp.route('/api/get_chat_context_users', methods=['GET'])
 @login_required
 def api_get_chat_context_users():
     users = get_chat_context_users()
     return jsonify({'users': users})
 
-@app.route('/clear_chat_context/<username>', methods=['POST'])
+@bp.route('/clear_chat_context/<username>', methods=['POST'])
 @login_required
 def clear_chat_context(username):
     """清除指定用户的聊天上下文"""
@@ -2312,7 +2372,7 @@ def clear_chat_context(username):
             return jsonify({'status': 'error', 'message': '处理聊天上下文文件失败'}), 500
 
 # 聊天上下文编辑API
-@app.route('/api/get_chat_context/<username>', methods=['GET'])
+@bp.route('/api/get_chat_context/<username>', methods=['GET'])
 @login_required
 def get_user_chat_context(username):
     """获取指定用户的聊天上下文"""
@@ -2339,7 +2399,7 @@ def get_user_chat_context(username):
             app.logger.error(f"读取或解析聊天上下文文件失败: {e}")
             return jsonify({'error': f'读取或解析文件失败: {e}'}), 500
 
-@app.route('/api/save_chat_context/<username>', methods=['POST'])
+@bp.route('/api/save_chat_context/<username>', methods=['POST'])
 @login_required
 def save_user_chat_context(username):
     """保存指定用户修改后的聊天上下文，强制合并连续user消息，确保user→assistant结构"""
@@ -2394,7 +2454,7 @@ def save_user_chat_context(username):
             return jsonify({'status': 'error', 'message': f'保存失败: {str(e)}'}), 500
     return jsonify({'status': 'success', 'message': f"用户 '{username}' 的上下文已更新"})
 
-@app.route('/api/npc/save_settings', methods=['POST'])
+@bp.route('/api/npc/save_settings', methods=['POST'])
 @login_required
 def save_npc_settings():
     """保存NPC配置"""
@@ -2486,7 +2546,7 @@ def save_npc_settings():
         app.logger.error(f"保存NPC配置失败: {e}")
         return jsonify({'error': f'保存失败: {str(e)}'}), 500
 
-@app.route('/api/npc/get_settings', methods=['GET'])
+@bp.route('/api/npc/get_settings', methods=['GET'])
 @login_required
 def get_npc_settings():
     """获取NPC配置"""
@@ -2526,7 +2586,7 @@ def get_npc_settings():
                 app.logger.error(f"读取NPC配置文件失败: {read_error}")
                 return jsonify({'error': f'读取配置失败: {str(read_error)}'}), 500
         else:
-            app.logger.info("NPC配置文件不存在，返回空配置")
+            # 配置文件不存在是正常情况，直接返回空配置
             return jsonify({
                 'selected_npcs': [],
                 'npc_settings': {}
@@ -2537,7 +2597,7 @@ def get_npc_settings():
         return jsonify({'error': f'获取失败: {str(e)}'}), 500
 
 # 核心记忆管理API
-@app.route('/api/get_core_memory_files', methods=['GET'])
+@bp.route('/api/get_core_memory_files', methods=['GET'])
 @login_required
 def get_core_memory_files():
     """获取核心记忆文件列表"""
@@ -2587,7 +2647,7 @@ def get_core_memory_files():
         app.logger.error(f"获取核心记忆文件列表失败: {e}")
         return jsonify({'status': 'error', 'message': f'获取失败: {str(e)}'}), 500
 
-@app.route('/api/get_core_memory/<filename>', methods=['GET'])
+@bp.route('/api/get_core_memory/<filename>', methods=['GET'])
 @login_required  
 def get_core_memory(filename):
     """获取指定核心记忆文件的内容"""
@@ -2632,7 +2692,7 @@ def get_core_memory(filename):
         app.logger.error(f"获取核心记忆文件 {filename} 失败: {e}")
         return jsonify({'status': 'error', 'error': f'读取失败: {str(e)}'}), 500
 
-@app.route('/api/save_core_memory/<filename>', methods=['POST'])
+@bp.route('/api/save_core_memory/<filename>', methods=['POST'])
 @login_required
 @limiter.limit("30 per minute")  # 速率限制：核心记忆保存
 def save_core_memory(filename):
@@ -2690,7 +2750,7 @@ def save_core_memory(filename):
         app.logger.error(f"保存核心记忆文件 {filename} 失败: {e}")
         return jsonify({'status': 'error', 'message': f'保存失败: {str(e)}'}), 500
 
-@app.route('/api/delete_core_memory/<filename>', methods=['DELETE'])
+@bp.route('/api/delete_core_memory/<filename>', methods=['DELETE'])
 @login_required
 @limiter.limit("10 per minute")  # 速率限制：核心记忆删除
 def delete_core_memory(filename):
@@ -2732,7 +2792,7 @@ def run_bat_file():
 from multiprocessing import Process
 import random
 from datetime import datetime, timedelta
-@app.route('/forum/<character_name>')
+@bp.route('/forum/<character_name>')
 @login_required
 def character_forum(character_name):
     """AI角色论坛页面"""
@@ -2763,7 +2823,7 @@ def character_forum(character_name):
         app.logger.error(f"加载论坛页面失败: {e}")
         return "加载论坛页面失败", 500
 
-@app.route('/api/forum/refresh/<character_name>', methods=['POST'])
+@bp.route('/api/forum/refresh/<character_name>', methods=['POST'])
 @login_required
 @limiter.limit("20 per hour")  # 速率限制：论坛刷新（调用AI，成本较高）
 def refresh_forum(character_name):
@@ -2812,7 +2872,7 @@ def refresh_forum(character_name):
         app.logger.error(f"刷新论坛失败: {e}")
         return jsonify({'error': f'刷新失败: {str(e)}'}), 500
 
-@app.route('/api/forum/posts/<character_name>')
+@bp.route('/api/forum/posts/<character_name>')
 @login_required
 def get_forum_posts(character_name):
     """获取论坛历史帖子"""
@@ -2826,7 +2886,7 @@ def get_forum_posts(character_name):
         app.logger.error(f"获取论坛帖子失败: {e}")
         return jsonify({'error': f'获取失败: {str(e)}'}), 500
 
-@app.route('/api/forum/delete/<character_name>/<post_id>', methods=['DELETE'])
+@bp.route('/api/forum/delete/<character_name>/<post_id>', methods=['DELETE'])
 @login_required
 @limiter.limit("20 per minute")  # 速率限制：防止滥用删除
 def delete_forum_post(character_name, post_id):
@@ -2868,7 +2928,7 @@ def delete_forum_post(character_name, post_id):
         app.logger.error(f"删除论坛帖子失败: {e}")
         return jsonify({'error': f'删除失败: {str(e)}'}), 500
 
-@app.route('/test_forum_ai/<character_name>')
+@bp.route('/test_forum_ai/<character_name>')
 @login_required
 def test_forum_ai(character_name):
     """测试AI论坛判断逻辑"""
@@ -2900,7 +2960,7 @@ def test_forum_ai(character_name):
         app.logger.error(f"测试AI判断失败: {e}")
         return f"测试失败: {str(e)}", 500
 
-@app.route('/run_one_key_detection', methods=['GET'])
+@bp.route('/run_one_key_detection', methods=['GET'])
 @login_required
 def run_one_key_detection():
     bat_file_path = "一键检测.bat"
@@ -3382,7 +3442,7 @@ def get_thread_posts(character_name):
         pass
     return threads
 
-@app.route('/api/forum/like/<character_name>/<post_id>', methods=['POST'])
+@bp.route('/api/forum/like/<character_name>/<post_id>', methods=['POST'])
 @login_required
 def like_forum_post(character_name, post_id):
     """点赞/取消点赞 指定帖子。请求体可包含 like: true/false；不含则为切换。"""
@@ -3398,7 +3458,7 @@ def like_forum_post(character_name, post_id):
         app.logger.error(f"点赞操作失败: {e}")
         return jsonify({'error': f'点赞失败: {str(e)}'}), 500
 
-@app.route('/api/forum/likes/<character_name>')
+@bp.route('/api/forum/likes/<character_name>')
 @login_required
 def get_likes(character_name):
     """获取我喜欢的帖子列表"""
@@ -3409,7 +3469,7 @@ def get_likes(character_name):
         app.logger.error(f"获取喜欢列表失败: {e}")
         return jsonify({'error': f'获取失败: {str(e)}'}), 500
 
-@app.route('/api/forum/reply/<character_name>/<post_id>', methods=['POST'])
+@bp.route('/api/forum/reply/<character_name>/<post_id>', methods=['POST'])
 @login_required
 def reply_to_post(character_name, post_id):
     """对帖子进行回复（添加一条评论），并自动生成角色的AI回复"""
@@ -3458,7 +3518,7 @@ def reply_to_post(character_name, post_id):
         app.logger.error(f"添加回复失败: {e}")
         return jsonify({'error': f'添加回复失败: {str(e)}'}), 500
 
-@app.route('/api/forum/threads/<character_name>')
+@bp.route('/api/forum/threads/<character_name>')
 @login_required
 def get_forum_threads(character_name):
     """获取包含回复的帖子列表（用于“推文和回复”）"""
@@ -3610,7 +3670,7 @@ def generate_likes_feed_items(character_name, use_online=False):
         app.logger.error(f"生成喜欢Feed失败: {e}")
         return []
 
-@app.route('/api/forum/likes_feed/<character_name>')
+@bp.route('/api/forum/likes_feed/<character_name>')
 @login_required
 def get_likes_feed(character_name):
     try:
@@ -3637,7 +3697,7 @@ def get_likes_feed(character_name):
         app.logger.error(f"获取喜欢Feed失败: {e}")
         return jsonify({'error': f'获取失败: {str(e)}'}), 500
 
-@app.route('/api/forum/refresh_likes/<character_name>', methods=['POST'])
+@bp.route('/api/forum/refresh_likes/<character_name>', methods=['POST'])
 @login_required
 def refresh_likes_feed(character_name):
     try:
@@ -3664,7 +3724,7 @@ def refresh_likes_feed(character_name):
         app.logger.error(f"刷新喜欢Feed失败: {e}")
         return jsonify({'error': f'刷新失败: {str(e)}'}), 500
 
-@app.route('/api/forum/likes_feed/<character_name>/<item_id>', methods=['DELETE'])
+@bp.route('/api/forum/likes_feed/<character_name>/<item_id>', methods=['DELETE'])
 @login_required
 def delete_likes_feed_item(character_name, item_id):
     """删除AI生成的喜欢Feed中的一项，不影响论坛原帖"""
@@ -3683,7 +3743,7 @@ def delete_likes_feed_item(character_name, item_id):
         return jsonify({'error': f'删除失败: {str(e)}'}), 500
 
 # ===== 头像管理API =====
-@app.route('/api/forum/avatar/upload/<character_name>', methods=['POST'])
+@bp.route('/api/forum/avatar/upload/<character_name>', methods=['POST'])
 @login_required
 def upload_avatar(character_name):
     """上传角色头像"""
@@ -3736,7 +3796,7 @@ def upload_avatar(character_name):
         app.logger.error(f"头像上传失败: {e}")
         return jsonify({'error': f'上传失败: {str(e)}'}), 500
 
-@app.route('/api/forum/avatar/<character_name>')
+@bp.route('/api/forum/avatar/<character_name>')
 @login_required
 def get_avatar(character_name):
     """获取角色头像"""
@@ -3751,7 +3811,7 @@ def get_avatar(character_name):
         app.logger.error(f"获取头像失败: {e}")
         return jsonify({'error': f'获取失败: {str(e)}'}), 500
 
-@app.route('/api/forum/avatar/<character_name>', methods=['DELETE'])
+@bp.route('/api/forum/avatar/<character_name>', methods=['DELETE'])
 @login_required
 def delete_avatar(character_name):
     """删除角色头像"""
@@ -4195,7 +4255,8 @@ def get_default_config():
         "FORUM_MODEL": '',
         "FORUM_API_KEY": '',
         "FORUM_TEMPERATURE": 1.0,
-        "FORUM_MAX_TOKEN": 1200
+        "FORUM_MAX_TOKEN": 1200,
+        "SECURITY_PATH_PREFIX": ''
     }
 
 def validate_config():
@@ -4363,6 +4424,9 @@ if __name__ == '__main__':
     console_handler.setFormatter(formatter)
     app.logger.addHandler(console_handler)
     
+    # 暂时不注册Blueprint，等检测完安全机制并更新配置后再注册
+    # 这样可以确保使用最新的配置
+    
     class BotStatusFilter(logging.Filter):
         def filter(self, record):
             msg = record.getMessage()
@@ -4393,25 +4457,84 @@ if __name__ == '__main__':
     
     config = parse_config()
     PORT = config.get('PORT', '5000')
+    SECURITY_PATH_PREFIX = config.get('SECURITY_PATH_PREFIX', '')
     
-    # 如果端口为默认的5000，则自动修改为5001-5998之间的随机可用端口
-    if PORT == 5000 or PORT == '5000':
-        print(f"\033[33m检测到使用默认端口 5000，正在自动切换到随机端口...\033[0m")
-        new_port = get_random_available_port(5001, 5998)
-        
-        if new_port:
-            print(f"\033[32m已分配新端口: {new_port}\033[0m")
-            # 更新配置文件
-            try:
-                update_config({'PORT': new_port})
-                PORT = new_port
-                print(f"\033[32m配置文件已更新，新端口: {new_port}\033[0m")
-            except Exception as e:
-                print(f"\033[31m更新配置文件失败: {e}，将继续使用端口 5000\033[0m")
-                PORT = 5000
+    # 如果端口为默认的5000或安全路径前缀为空，则启用三重安全机制
+    need_security_setup = (PORT == 5000 or PORT == '5000') or (not SECURITY_PATH_PREFIX or SECURITY_PATH_PREFIX.strip() == '')
+    
+    if need_security_setup:
+        # 显示安全机制说明
+        print(f"\n\033[33m{'='*70}\033[0m")
+        if PORT == 5000 or PORT == '5000':
+            print(f"\033[33m🔒 检测到使用默认端口 5000 - 启用三重安全机制\033[0m")
+            print(f"\033[33m{'='*70}\033[0m")
+            print(f"\033[32m  ✓ 随机端口 (5001-45000)\033[0m")
+            print(f"\033[32m  ✓ 随机路径前缀 (8位字母数字)\033[0m")
+            print(f"\033[32m  ✓ 强制密码复杂度 (外网访问时)\033[0m")
         else:
-            print(f"\033[31m警告: 无法找到5001-5998之间的可用端口，将继续使用端口 5000\033[0m")
-            PORT = 5000
+            print(f"\033[33m🔒 检测到未设置安全路径前缀 - 启用安全机制\033[0m")
+            print(f"\033[33m{'='*70}\033[0m")
+            print(f"\033[32m  ✓ 保持当前端口 ({PORT})\033[0m")
+            print(f"\033[32m  ✓ 随机路径前缀 (8位字母数字)\033[0m")
+            print(f"\033[32m  ✓ 强制密码复杂度 (外网访问时)\033[0m")
+        print(f"\033[33m{'='*70}\033[0m\n")
+        
+        # 决定是否需要生成新端口
+        if PORT == 5000 or PORT == '5000':
+            new_port = get_random_available_port(5001, 45000)
+            if new_port:
+                print(f"\033[32m已分配新端口: {new_port}\033[0m")
+            else:
+                print(f"\033[31m无法分配随机端口，保持默认端口 5000\033[0m")
+                new_port = 5000
+        else:
+            # 端口不是5000，保持当前端口
+            new_port = PORT
+            print(f"\033[32m保持当前端口: {new_port}\033[0m")
+        
+        # 生成随机安全路径前缀（纯字母数字，无符号）
+        import random
+        import string
+        random_path = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        new_security_prefix = f'/{random_path}'
+        print(f"\033[32m已生成安全路径前缀: {new_security_prefix}\033[0m")
+        
+        # 更新配置文件（同时写入端口和安全前缀）
+        try:
+            update_config({
+                'PORT': new_port,
+                'SECURITY_PATH_PREFIX': new_security_prefix
+            })
+            PORT = new_port
+            print(f"\033[32m✓ 配置已更新\033[0m")
+            
+            # 检查外网访问的密码复杂度（安全机制3）
+            config = parse_config()  # 重新读取配置
+            if config.get('ALLOW_OPEN_PORT', False):
+                current_password = config.get('LOGIN_PASSWORD', '')
+                password_valid = config.get('PASSWORD_IS_VALID', False)
+                
+                # 检查密码复杂度
+                is_complex = (
+                    len(current_password) >= 8 and
+                    any(c.isupper() for c in current_password) and
+                    any(c.islower() for c in current_password) and
+                    any(c.isdigit() for c in current_password)
+                )
+                
+                if not is_complex or not password_valid:
+                    print(f"\033[31m⚠️  外网访问已启用，但密码不符合安全要求！\033[0m")
+                    print(f"\033[33m首次访问时将要求设置复杂密码（8位+大小写+数字）\033[0m")
+                    # 强制重置密码状态，用户首次访问时会弹出密码设置弹窗
+                    update_config({'PASSWORD_IS_VALID': False})
+        except Exception as e:
+            print(f"\033[31m更新配置文件失败: {e}\033[0m")
+            if PORT == 5000 or PORT == '5000':
+                print(f"\033[31m将继续使用默认端口 5000\033[0m")
+                PORT = 5000
+        
+        # 显示安全配置完成总结
+        print(f"\033[32m✓ 三重安全机制配置完成！\033[0m\n")
     
     # 确保PORT是整数类型
     PORT = int(PORT)
@@ -4419,30 +4542,78 @@ if __name__ == '__main__':
     # 在启动服务器前检查端口是否被占用，若占用则结束该进程
     kill_process_using_port(PORT)
 
-    print(f"\033[31m重要提示：\r\n若您的浏览器没有自动打开网页端，请手动访问 http://localhost:{PORT}/ \r\n \033[0m")
-    allow_open_port = config.get('ALLOW_OPEN_PORT', False)
-    password_is_valid = config.get('PASSWORD_IS_VALID', False)
-    if password_is_valid:
-        print(f"\033[32m已启用登录保护：访问网页需输入已设置的密码。\r\n \033[0m")
+    # 最终确认安全路径前缀（确保使用最新的配置）
+    security_prefix = ''
+    try:
+        final_config = parse_config()
+        final_prefix = final_config.get('SECURITY_PATH_PREFIX', '')
+        if final_prefix:
+            security_prefix = final_prefix.strip()
+            if security_prefix and not security_prefix.startswith('/'):
+                security_prefix = '/' + security_prefix
+            if security_prefix and security_prefix.endswith('/'):
+                security_prefix = security_prefix.rstrip('/')
+    except Exception as e:
+        print(f"\033[33m警告：读取安全路径前缀失败: {e}\033[0m")
+    
+    # 注册Blueprint到应用（使用最新的配置）
+    app.register_blueprint(bp, url_prefix=security_prefix)
+    print(f"\033[36m✓ Blueprint已注册，URL前缀: {security_prefix if security_prefix else '(根路径)'}\033[0m")
+    
+    # 注入全局模板变量
+    @app.context_processor
+    def inject_url_prefix():
+        return {'url_prefix': security_prefix}
+    
+    if security_prefix:
+        print(f"\033[32m✓ 安全路径前缀已启用: {security_prefix}\033[0m")
     else:
-        print(f"\033[31m检测到尚未设置登录密码：首次访问将跳转到密码设置页面。\r\n \033[0m")
-    if allow_open_port:
-        print(f"\033[33m外网访问已开启，请务必妥善保管您的登录密码。\r\n \033[0m")
+        print(f"\033[33m✓ 未设置安全路径前缀，使用根路径访问\033[0m")
+    
+    # 构建完整访问URL（包含安全路径前缀）
+    access_url = f"http://localhost:{PORT}{security_prefix}/"
     
     # 根据配置决定绑定地址
+    allow_open_port = config.get('ALLOW_OPEN_PORT', False)
+    password_is_valid = config.get('PASSWORD_IS_VALID', False)
     host = "0.0.0.0" if allow_open_port else "127.0.0.1"
     
-    print(f"\033[36m")
-    print(f"============================================================")
-    print(f"  WeChatBot 配置管理器")
-    print(f"监听地址: {host}:{PORT}")
-    print(f"访问地址: http://localhost:{PORT}/")
-    print(f"============================================================")
-    print(f"\033[0m")
+    # 显示简洁的访问信息
+    print(f"\033[36m{'='*70}\033[0m")
+    print(f"\033[36m  WeChatBot 配置管理器\033[0m")
+    print(f"\033[36m{'='*70}\033[0m")
+    
+    # 安全特性状态
+    if PORT != 5000:
+        print(f"\033[32m  ✓ 非常见端口: {PORT}\033[0m")
+    if security_prefix:
+        print(f"\033[32m  ✓ 安全路径前缀: {security_prefix}\033[0m")
+    
+    # 外网访问和密码提示
+    if allow_open_port:
+        print(f"\n\033[33m  外网访问已开启\033[0m")
+        if not password_is_valid:
+            print(f"\033[31m  ⚠️  必须设置登录密码才能访问！\033[0m")
+    elif password_is_valid:
+        print(f"\n\033[90m  已设置登录密码\033[0m")
+    
+    # 安全路径访问说明
+    if security_prefix:
+        print(f"\n\033[90m  ━━━ 安全路径说明 ━━━\033[0m")
+        print(f"\033[90m  安全路径是随机生成的访问路径，防止恶意扫描和未授权访问\033[0m")
+        print(f"\033[90m  直接访问根路径会被安全机制拦截，返回404错误\033[0m")
+        print(f"\033[31m    ❌ http://localhost:{PORT}/ → 直接访问会404（已被安全机制屏蔽）\033[0m")
+        print(f"\033[32m    ✅ {access_url} → 使用完整路径可正常访问\033[0m")
+    
+    # 访问地址（加粗显示）
+    print(f"\n\033[1m\033[33m  访问地址: {access_url}\033[0m")
+    print(f"\033[90m  如果浏览器未自动打开，请手动访问上述地址\033[0m\n")
+    
+    print(f"\033[36m{'='*70}\033[0m\n")
     
     # 在启动服务器前设置定时器打开浏览器
     def open_browser():
-        webbrowser.open(f'http://localhost:{PORT}/')
+        webbrowser.open(access_url)
     
     Timer(1, open_browser).start()  # 延迟1秒确保服务器已启动
     

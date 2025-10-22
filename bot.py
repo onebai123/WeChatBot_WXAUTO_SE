@@ -32,6 +32,7 @@ from threading import Timer
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import os
+
 try:
     from wxautox_wechatbot import WeChat
     from wxautox_wechatbot.param import WxParam
@@ -171,7 +172,16 @@ USER_TIMERS_FILE = "user_timers.json"  # 存储用户计时器状态的文件名
 
 # 心跳相关全局变量
 HEARTBEAT_INTERVAL = 5  # 秒
-FLASK_SERVER_URL_BASE = f'http://localhost:{PORT}' # 使用从config导入的PORT
+# 获取安全路径前缀
+try:
+    SECURITY_PATH_PREFIX = globals().get('SECURITY_PATH_PREFIX', '')
+    if SECURITY_PATH_PREFIX and not SECURITY_PATH_PREFIX.startswith('/'):
+        SECURITY_PATH_PREFIX = '/' + SECURITY_PATH_PREFIX
+    if SECURITY_PATH_PREFIX and SECURITY_PATH_PREFIX.endswith('/'):
+        SECURITY_PATH_PREFIX = SECURITY_PATH_PREFIX.rstrip('/')
+except:
+    SECURITY_PATH_PREFIX = ''
+FLASK_SERVER_URL_BASE = f'http://localhost:{PORT}{SECURITY_PATH_PREFIX}' # 使用从config导入的PORT和前缀
 
 # --- REMINDER RELATED GLOBALS ---
 RECURRING_REMINDERS_FILE = "recurring_reminders.json" # 存储重复和长期一次性提醒的文件名
@@ -258,7 +268,7 @@ class AsyncHTTPHandler(logging.Handler):
         try:
             # 使用非阻塞方式测试连接，超时时间短
             resp = self.session.get(
-                f'http://localhost:{PORT}/',
+                f'{FLASK_SERVER_URL_BASE}/',
                 timeout=2
             )
             if resp.status_code == 200:
@@ -431,7 +441,7 @@ class AsyncHTTPHandler(logging.Handler):
                 
             except requests.exceptions.HTTPError as e:
                 # HTTP错误（4xx, 5xx）
-                status_code = e.response.status_code if e.response else 'Unknown'
+                status_code = e.response.status_code if e.response else 0
                 if status_code >= 500:
                     # 服务器错误，可以重试
                     logging.warning(f"Waitress服务器错误 {status_code} (尝试 {attempt+1}/{self.retry_attempts})")
@@ -506,7 +516,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
 # 初始化异步HTTP处理器
 async_http_handler = AsyncHTTPHandler(
-    url=f'http://localhost:{PORT}/api/log',
+    url=f'{FLASK_SERVER_URL_BASE}/api/log',
     batch_size=20,  # 一次发送20条日志
     batch_timeout=1  # 即使不满20条，最多等待1秒也发送
 )

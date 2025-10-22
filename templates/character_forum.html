@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        // 全局URL前缀配置
+        window.URL_PREFIX = "{{ url_prefix }}";
+    </script>
 <!-----------------------------------------------------------------------
 - Copyright (C) 2025, iwyxdxl
 - Licensed under GNU GPL-3.0 or higher, see the LICENSE file for details.
@@ -918,7 +922,7 @@
                     if (!itemId) return;
                     if (!confirm('确定移除此喜欢吗？')) return;
                     try {
-                        const res = await fetch(`/api/forum/likes_feed/${characterName}/${itemId}`, { method: 'DELETE' });
+                        const res = await fetch(`${URL_PREFIX}/api/forum/likes_feed/${characterName}/${itemId}`, { method: 'DELETE' });
                         if (!res.ok) {
                             const data = await res.json().catch(()=>({error:'删除失败'}));
                             throw new Error(data.error || `HTTP ${res.status}`);
@@ -989,7 +993,7 @@
         async function loadExistingPosts() {
             try {
                 console.log('开始请求帖子数据:', `/api/forum/posts/${characterName}`);
-                const response = await fetch(`/api/forum/posts/${characterName}`);
+                const response = await fetch(`${URL_PREFIX}/api/forum/posts/${characterName}`);
                 console.log('响应状态:', response.status);
                 const data = await response.json();
                 console.log('获取到的数据:', data);
@@ -1023,7 +1027,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分钟超时
                 
-                const response = await fetch(`/api/forum/refresh/${characterName}`, {
+                const response = await fetch(`${URL_PREFIX}/api/forum/refresh/${characterName}`, {
                     method: 'POST',
                     headers: getCSRFHeaders({
                         'Content-Type': 'application/json'
@@ -1269,7 +1273,7 @@
             try {
                 const container = document.getElementById('postsContainer');
                 container.innerHTML = '<div class="loading"><div class="spinner"></div><div>正在加载和你有关的会话...</div></div>';
-                const response = await fetch(`/api/forum/threads/${characterName}`);
+                const response = await fetch(`${URL_PREFIX}/api/forum/threads/${characterName}`);
                 const data = await response.json();
                 if (data.posts && data.posts.length) {
                     displayThreadPosts(data.posts);
@@ -1354,8 +1358,8 @@
                 container.innerHTML = '<div class="loading"><div class="spinner"></div><div>正在加载喜欢的内容...</div></div>';
                 // 两部分：1) 我点赞的本地帖子 2) AI生成的喜欢Feed
                 const [likedRes, feedRes] = await Promise.all([
-                    fetch(`/api/forum/likes/${characterName}`),
-                    fetch(`/api/forum/likes_feed/${characterName}`)
+                    fetch(`${URL_PREFIX}/api/forum/likes/${characterName}`),
+                    fetch(`${URL_PREFIX}/api/forum/likes_feed/${characterName}`)
                 ]);
                 const likedData = await likedRes.json();
                 const feedData = await feedRes.json();
@@ -1428,7 +1432,7 @@
             try {
                 const btn = document.getElementById('refreshLikesBtn');
                 btn.disabled = true; const oldText = btn.textContent; btn.textContent = '💖 生成中...';
-                const res = await fetch(`/api/forum/refresh_likes/${characterName}`, { 
+                const res = await fetch(`${URL_PREFIX}/api/forum/refresh_likes/${characterName}`, { 
                     method: 'POST',
                     headers: getCSRFHeaders()
                 });
@@ -1462,7 +1466,7 @@
                 countSpan.textContent = String(currentCount + (nextLiked ? 1 : -1));
 
                 // 请求后端
-                const res = await fetch(`/api/forum/like/${characterName}/${postId}`, {
+                const res = await fetch(`${URL_PREFIX}/api/forum/like/${characterName}/${postId}`, {
                     method: 'POST',
                     headers: getCSRFHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ like: nextLiked })
@@ -1519,7 +1523,7 @@
         async function sendReply(postElement, postId, content, btn) {
             try {
                 if (btn) { btn.disabled = true; btn.textContent = '发送中...'; }
-                const res = await fetch(`/api/forum/reply/${characterName}/${postId}`, {
+                const res = await fetch(`${URL_PREFIX}/api/forum/reply/${characterName}/${postId}`, {
                     method: 'POST',
                     headers: getCSRFHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ content })
@@ -1585,7 +1589,7 @@
                 console.log('开始加载头像设置...');
                 
                 // 尝试从服务器获取头像
-                const response = await fetch(`/api/forum/avatar/${characterName}`);
+                const response = await fetch(`${URL_PREFIX}/api/forum/avatar/${characterName}`);
                 if (response.ok) {
                     const blob = await response.blob();
                     const avatarUrl = URL.createObjectURL(blob);
@@ -1729,7 +1733,7 @@
                 saveBtn.disabled = true;
                 saveBtn.textContent = '上传中...';
                 
-                const response = await fetch(`/api/forum/avatar/upload/${characterName}`, {
+                const response = await fetch(`${URL_PREFIX}/api/forum/avatar/upload/${characterName}`, {
                     method: 'POST',
                     headers: getCSRFHeaders(),
                     body: formData
@@ -1767,7 +1771,7 @@
                 }
                 
                 // 调用后端API删除头像文件
-                const response = await fetch(`/api/forum/avatar/${characterName}`, {
+                const response = await fetch(`${URL_PREFIX}/api/forum/avatar/${characterName}`, {
                     method: 'DELETE'
                 });
                 
@@ -1809,7 +1813,7 @@
             }
             
             try {
-                const response = await fetch(`/api/forum/delete/${characterName}/${postId}`, {
+                const response = await fetch(`${URL_PREFIX}/api/forum/delete/${characterName}/${postId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json'
