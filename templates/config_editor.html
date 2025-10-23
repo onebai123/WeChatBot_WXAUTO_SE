@@ -6070,7 +6070,8 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
 <!-- 微信版本对比弹窗 -->
     <div class="version-modal-overlay" id="versionModal">
         <div class="version-modal">
-            <h2>切换微信版本</h2>
+            <h2>切换微信版本（需安装对应版本微信）</h2>
+            <p style="margin: -15px 0 20px 0; color: #666; font-size: 13px;">注：可同时安装2版，不同目录即可</p>
             <div class="version-comparison">
                 <div class="version-card active" id="currentCard"></div>
                 <div class="version-card target" id="targetCard"></div>
@@ -6121,24 +6122,30 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
             if (from === '3.9') {
                 currentCard.innerHTML = `
                     <h3>微信 3.9 (当前)</h3>
+                    <div style="margin-bottom: 10px; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <a href="https://weixin.qq.com/updates?platform=windows&version=3.9.12" target="_blank" style="color: #007bff; font-size: 13px; text-decoration: none;">📥 微信 3.9.12 下载地址</a>
+                    </div>
                     <div class="version-feature pro">
                         <strong>✓ 优点：</strong>
                         稳定可靠，功能强大
                     </div>
                     <div class="version-feature con">
                         <strong>✗ 缺点：</strong>
-                        容易登不上
+                        容易登不上，提示版本太低
                     </div>
                     <div class="version-feature">
-                        <strong>解决办法：</strong>
-                        重启微信或使用扫码登录
+                        <strong>解决方案：</strong>
+                        下载2个版本微信，先登录一次新版，再退出，登录旧版 <a href="https://s.apifox.cn/2e75fa29-1b5e-4e5c-b604-c89e95a6555d/7534473m0" target="_blank" style="color: #007bff;">[详细教程]</a>
                     </div>
                 `;
                 targetCard.innerHTML = `
-                    <h3>微信 4.0.5 (目标)</h3>
+                    <h3>微信 4.0.5-开发版 (目标)</h3>
+                    <div style="margin-bottom: 10px; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <a href="https://weixin.qq.com/updates?platform=windows&version=4.0.5" target="_blank" style="color: #007bff; font-size: 13px; text-decoration: none;">📥 微信 4.0.5 下载地址</a>
+                    </div>
                     <div class="version-feature pro">
                         <strong>✓ 优点：</strong>
-                        新兼容版本
+                        新兼容版本，不提示版本太低
                     </div>
                     <div class="version-feature warning">
                         <strong>⚠ 功能限制：</strong>
@@ -6146,15 +6153,22 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
                     </div>
                     <div class="version-feature con">
                         <strong>✗ 缺点：</strong>
-                        不支持群聊等高级功能，存在不稳定风险
+                        不支持群聊等高级功能
+                    </div>
+                    <div class="version-feature con">
+                        <strong>⚠️ 风险：</strong>
+                        开发版，未长期验证，存在风险
                     </div>
                 `;
             } else {
                 currentCard.innerHTML = `
-                    <h3>微信 4.0.5 (当前)</h3>
+                    <h3>微信 4.0.5-开发版 (当前)</h3>
+                    <div style="margin-bottom: 10px; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <a href="https://weixin.qq.com/updates?platform=windows&version=4.0.5" target="_blank" style="color: #007bff; font-size: 13px; text-decoration: none;">📥 微信 4.0.5 下载地址</a>
+                    </div>
                     <div class="version-feature pro">
                         <strong>✓ 优点：</strong>
-                        新兼容版本
+                        版本新，不提示版本太低
                     </div>
                     <div class="version-feature warning">
                         <strong>⚠ 功能限制：</strong>
@@ -6162,22 +6176,29 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
                     </div>
                     <div class="version-feature con">
                         <strong>✗ 缺点：</strong>
-                        不支持群聊等高级功能，存在不稳定风险
+                        不支持群聊等高级功能
+                    </div>
+                    <div class="version-feature con">
+                        <strong>⚠️ 风险：</strong>
+                        开发版，未长期验证，存在风险
                     </div>
                 `;
                 targetCard.innerHTML = `
                     <h3>微信 3.9 (目标)</h3>
+                    <div style="margin-bottom: 10px; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <a href="https://weixin.qq.com/updates?platform=windows&version=3.9.12" target="_blank" style="color: #007bff; font-size: 13px; text-decoration: none;">📥 微信 3.9.12 下载地址</a>
+                    </div>
                     <div class="version-feature pro">
                         <strong>✓ 优点：</strong>
                         稳定可靠，功能强大
                     </div>
                     <div class="version-feature con">
                         <strong>✗ 缺点：</strong>
-                        容易登不上
+                        容易登不上，提示版本太低
                     </div>
                     <div class="version-feature">
-                        <strong>解决办法：</strong>
-                        重启微信或使用扫码登录
+                        <strong>解决方案：</strong>
+                        下载2个版本微信，先登录一次新版，再退出，登录旧版 <a href="https://s.apifox.cn/2e75fa29-1b5e-4e5c-b604-c89e95a6555d/7534473m0" target="_blank" style="color: #007bff;">[详细教程]</a>
                     </div>
                 `;
             }

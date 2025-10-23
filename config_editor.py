@@ -4526,7 +4526,8 @@ def get_default_config():
         "FORUM_API_KEY": '',
         "FORUM_TEMPERATURE": 1.0,
         "FORUM_MAX_TOKEN": 1200,
-        "SECURITY_PATH_PREFIX": ''
+        "SECURITY_PATH_PREFIX": '',
+        "WECHAT_VERSION": '3.9'
     }
 
 def validate_config():
