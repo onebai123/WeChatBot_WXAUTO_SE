@@ -25,6 +25,7 @@ import pyautogui
 import shutil
 import re
 import ast
+import config
 from config import *
 import queue
 import json
@@ -33,18 +34,32 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import os
 import ctypes
+os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
 
-try:
-    from wxautox_wechatbot import WeChat
-    from wxautox_wechatbot.param import WxParam
-    WxParam.ENABLE_FILE_LOGGER = False
-    WxParam.FORCE_MESSAGE_XBIAS = True
-    os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
-except ImportError:
+# 根据配置动态导入微信模块
+wechat_version = getattr(config, 'WECHAT_VERSION', '3.9')
+if wechat_version == '4.0.5':
     try:
-        from wxautox import WeChat
+        from wxautox4_wechatbot import WeChat
+        from wxautox4_wechatbot.param import WxParam
+        WxParam.ENABLE_FILE_LOGGER = False
+        WxParam.FORCE_MESSAGE_XBIAS = True
+        print(f"✅ 使用微信版本: 4.0.5 (BAT测试版)")
     except ImportError:
-        from wxauto import WeChat
+        print("❌ 未找到 wxautox4_wechatbot 模块，请安装后重试")
+        raise
+else:
+    try:
+        from wxautox_wechatbot import WeChat
+        from wxautox_wechatbot.param import WxParam
+        WxParam.ENABLE_FILE_LOGGER = False
+        WxParam.FORCE_MESSAGE_XBIAS = True
+        print(f"✅ 使用微信版本: 3.9 (稳定版)")
+    except ImportError:
+        try:
+            from wxautox import WeChat
+        except ImportError:
+            from wxauto import WeChat
 
 # 生成用户昵称列表和prompt映射字典
 user_names = [entry[0] for entry in LISTEN_LIST]

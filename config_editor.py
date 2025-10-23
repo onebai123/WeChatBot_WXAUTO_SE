@@ -913,9 +913,47 @@ def bot_status():
 
     return {"status": current_status}
 
+@bp.route('/save_wechat_version', methods=['POST'])
+@login_required
+@limiter.limit("10 per minute")
+def save_wechat_version():
+    """保存微信版本选择"""
+    data = request.get_json()
+    version = data.get('version', '3.9')
+    
+    if version not in ['3.9', '4.0.5']:
+        return jsonify({'status': 'error', 'message': '无效的版本号'}), 400
+    
+    config_path = os.path.join(os.path.dirname(__file__), 'config.py')
+    content = safe_read_file_with_encoding(config_path)
+    
+    # 更新版本配置
+    import re
+    pattern = r"WECHAT_VERSION\s*=\s*['\"].*?['\"]"
+    replacement = f"WECHAT_VERSION = '{version}'"
+    
+    if re.search(pattern, content):
+        content = re.sub(pattern, replacement, content)
+    else:
+        # 如果不存在，在文件开头添加
+        lines = content.split('\n')
+        insert_pos = 0
+        for i, line in enumerate(lines):
+            if line.strip().startswith('#') or not line.strip():
+                continue
+            insert_pos = i
+            break
+        lines.insert(insert_pos, f"\n# 微信版本选择 ('3.9' 或 '4.0.5')\nWECHAT_VERSION = '{version}'\n")
+        content = '\n'.join(lines)
+    
+    with open(config_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    
+    return jsonify({'status': 'success', 'message': f'已切换到微信 {version} 版本'})
+
 @bp.route('/submit_config', methods=['POST'])
 @login_required
-@limiter.limit("30 per minute")  # 速率限制：防止频繁提交配置
+@limiter.limit("30 per minute")
 def submit_config():
     global bot_process
     if bot_process and bot_process.poll() is None:
@@ -1066,7 +1104,14 @@ def submit_config():
                 else: 
                     new_values_for_config_py[key_from_form] = value_from_form
             else: 
-                if key_from_form == "GROUP_CHAT_RESPONSE_PROBABILITY":
+                if key_from_form == "WECHAT_VERSION":
+                    # 微信版本选择，只允许 3.9 或 4.0.5
+                    if value_from_form in ['3.9', '4.0.5']:
+                        new_values_for_config_py[key_from_form] = value_from_form
+                    else:
+                        new_values_for_config_py[key_from_form] = '3.9'
+                        app.logger.warning(f"新配置项 {key_from_form} 的值 '{value_from_form}' 无效，已设为默认值 3.9。")
+                elif key_from_form == "GROUP_CHAT_RESPONSE_PROBABILITY":
                     try:
                         str_value = str(value_from_form).strip()
                         if str_value and str_value.isdigit():
