@@ -1153,35 +1153,31 @@
         let cacheTimestamp = 0;
         const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
         
-        // 从endpoint获取最新的WeAPIs节点列表
+        // 从endpoint获取最新的WeAPIs节点列表（通过后端代理）
         async function fetchWeApisNodesFromEndpoint() {
-            for (const endpoint of WEAPIS_ENDPOINTS) {
-                try {
-                    const controller = new AbortController();
-                    setTimeout(() => controller.abort(), 5000); // 5秒超时
-                    
-                    const response = await fetch(endpoint, {
-                        method: 'GET',
-                        signal: controller.signal,
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && Array.isArray(data.data) && data.data.length > 0) {
-                            console.log(`成功从 ${endpoint} 获取WeAPIs节点列表:`, data.data);
-                            return data.data;
-                        }
+            try {
+                const controller = new AbortController();
+                setTimeout(() => controller.abort(), 8000); // 8秒超时
+                
+                // 使用后端代理接口，避免CORS问题
+                const response = await fetch(URL_PREFIX + '/proxy/weapis/endpoint', {
+                    method: 'GET',
+                    signal: controller.signal,
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
-                } catch (error) {
-                    console.warn(`从 ${endpoint} 获取节点列表失败:`, error);
-                    continue;
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && Array.isArray(data.data) && data.data.length > 0) {
+                        return data.data;
+                    }
                 }
+            } catch (error) {
+                return FALLBACK_WEAPIS_NODES;
             }
             
-            console.warn('所有endpoint都无法获取节点列表，使用备用节点');
             return FALLBACK_WEAPIS_NODES;
         }
         
@@ -1204,42 +1200,53 @@
             return nodes;
         }
         
-        // 检测WeAPIs节点可用性
+        // 检测WeAPIs节点可用性（通过后端代理，401也视为可用）
         async function checkWeAPIsNode(baseUrl) {
             try {
                 const controller = new AbortController();
-                setTimeout(() => controller.abort(), 3000); // 3秒超时
+                setTimeout(() => controller.abort(), 4000); // 4秒超时
                 
-                const response = await fetch(baseUrl + '/v1/models', {
-                    method: 'GET',
+                const response = await fetch(URL_PREFIX + '/proxy/weapis/check', {
+                    method: 'POST',
                     signal: controller.signal,
-                    headers: {
+                    headers: getCSRFHeaders({
                         'Content-Type': 'application/json'
-                    }
+                    }),
+                    body: JSON.stringify({ baseUrl: baseUrl })
                 });
-                return response.ok;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.available === true;
+                }
+                return false;
             } catch (error) {
                 return false;
             }
         }
         
-        // 自动选择可用的WeAPIs节点
+        // 自动选择可用的WeAPIs节点（依次尝试）
         async function selectAvailableWeAPIsNode() {
             const nodes = await getWeApisNodes();
-            
-            for (const node of nodes) {
-                // 确保节点URL格式正确
-                const baseUrl = node.replace(/\/+$/, ''); // 移除末尾的斜杠
-                if (await checkWeAPIsNode(baseUrl)) {
-                    console.log(`选择可用节点: ${baseUrl}`);
-                    return baseUrl + '/v1';
-                }
+            if (!nodes || nodes.length === 0) {
+                return 'https://vg.v1api.cc/v1';
             }
             
-            // 如果所有节点都不可用，返回第一个节点作为默认值
+            // 依次尝试每个节点
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                const baseUrl = node.replace(/\/+$/, '');
+                
+                if (await checkWeAPIsNode(baseUrl)) {
+                    return baseUrl + '/v1';
+                }
+                
+            }
+            
+            // 所有节点都不可用，返回第一个作为默认值
             const firstNode = nodes[0] || 'https://vg.v1api.cc';
-            console.log(`所有节点检测失败，使用默认节点: ${firstNode}`);
-            return firstNode.replace(/\/+$/, '') + '/v1';
+            const baseUrl = firstNode.replace(/\/+$/, '');
+            return baseUrl + '/v1';
         }
         
         // 判断URL是否为WeAPIs的URL（异步版本）
@@ -1255,7 +1262,6 @@
                     return url.startsWith(baseUrl) || url.includes('v1api.cc') || url.includes('v1chat.cc') || url.includes('a3e.top') || url.includes('littlewheat.com');
                 });
             } catch (error) {
-                console.warn('检查WeAPIs URL失败:', error);
                 // 备用检查逻辑
                 return isWeAPIsUrlSync(url);
             }
@@ -1305,12 +1311,18 @@
             { value: "other", text: "其它" }
         ];
 
-        // 动态获取weapi模型列表
+        // 动态获取weapi模型列表（通过后端代理）
         async function fetchWeapiModels() {
             try {
-                const response = await fetch('https://vg.v1api.cc/weapi_models', {
+                const controller = new AbortController();
+                setTimeout(() => controller.abort(), 6000);
+                
+                const response = await fetch(URL_PREFIX + '/proxy/weapis/models', {
                     method: 'GET',
-                    timeout: 5000
+                    signal: controller.signal,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 if (!response.ok) {
@@ -1322,10 +1334,8 @@
                 models.push({ value: "other", text: "其它" });
                 
                 weapiModelList = models;
-                console.log('Successfully fetched weapi models:', models.length, 'models');
                 return models;
             } catch (error) {
-                console.warn('Failed to fetch weapi models:', error);
                 weapiModelList = defaultWeapiModels;
                 return defaultWeapiModels;
             }
@@ -1413,8 +1423,6 @@
                         provider.dispatchEvent(new Event('change'));
                     }
                 });
-                
-                console.log(`WeAPIs URLs已更新为: ${availableUrl}`);
             } catch (error) {
                 console.error('更新WeAPIs URLs失败:', error);
             }
@@ -1536,8 +1544,8 @@
                     finalOnlineApiUrl.value = customOnlineApiUrl.value;
                 } else {
                     customOnlineApiUrl.style.display = 'none';
-                    if (this.value === 'https://vg.v1api.cc/v1' || WEAPIS_NODES.some(node => this.value.startsWith(node))) {
-                        // 选择WeAPIs时检测可用节点
+                    if (isWeAPIsUrlSync(this.value)) {
+                        // 选择WeAPIs时使用可用节点
                         const availableUrl = await selectAvailableWeAPIsNode();
                         this.value = availableUrl;
                         finalOnlineApiUrl.value = availableUrl;
@@ -3500,7 +3508,7 @@
                     if (addBtn) addBtn.onclick = function() { addChatRound(); };
                 });
         }
-        document.getElementById('addChatRoundBtn').onclick = function() { addChatRound(); };
+        
         function saveUserChatContext() {
             const username = document.getElementById('editChatContextUser').textContent;
             document.getElementById('editChatContextError').style.display = 'none';

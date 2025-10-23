@@ -776,6 +776,82 @@ def stop_bot():
 
         # 最终状态由 stop_bot_process 设置 current_bot_pid 和 last_heartbeat_time
         return {'status': 'stopped'}, 200
+
+@bp.route('/proxy/weapis/endpoint', methods=['GET'])
+@limiter.limit("20 per minute")
+def proxy_weapis_endpoint():
+    """代理WeAPIs endpoint请求，避免CORS问题"""
+    import requests
+    
+    endpoints = [
+        'https://vg.v1api.cc/endpoint',
+        'https://vg.v1chat.cc/endpoint',
+        'https://vg.a3e.top/endpoint',
+        'https://vg.littlewheat.com/endpoint'
+    ]
+    
+    for endpoint in endpoints:
+        try:
+            response = requests.get(endpoint, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if data and isinstance(data.get('data'), list) and len(data['data']) > 0:
+                    return jsonify(data), 200
+        except requests.exceptions.Timeout:
+            continue
+        except requests.exceptions.RequestException as e:
+            continue
+    
+    return jsonify({'error': '所有节点都无法获取数据'}), 503
+
+@bp.route('/proxy/weapis/models', methods=['GET'])
+@limiter.limit("20 per minute")
+def proxy_weapis_models():
+    """代理WeAPIs模型列表请求，避免CORS问题"""
+    import requests
+    
+    endpoints = [
+        'https://vg.v1api.cc/weapi_models',
+        'https://vg.v1chat.cc/weapi_models',
+        'https://vg.v3e.top/weapi_models'
+    ]
+    
+    for endpoint in endpoints:
+        try:
+            response = requests.get(endpoint, timeout=5)
+            if response.status_code == 200:
+                models = response.json()
+                return jsonify(models), 200
+        except requests.exceptions.Timeout:
+            continue
+        except requests.exceptions.RequestException as e:
+            continue
+    
+    # 所有节点都失败，返回错误，让前端使用默认列表
+    return jsonify({'error': '所有节点都无法获取模型列表'}), 503
+
+@bp.route('/proxy/weapis/check', methods=['POST'])
+@login_required
+@limiter.limit("60 per minute")
+def proxy_weapis_check():
+    """代理WeAPIs节点可用性检测，避免CORS问题"""
+    import requests
+    
+    data = request.get_json()
+    base_url = data.get('baseUrl')
+    
+    if not base_url:
+        return jsonify({'available': False, 'error': '缺少baseUrl参数'}), 400
+    
+    try:
+        response = requests.get(f"{base_url}/v1/models", timeout=3)
+        # 200或401都认为节点可用（401只是没API Key）
+        available = response.status_code in [200, 401]
+        return jsonify({'available': available, 'status': response.status_code}), 200
+    except requests.exceptions.Timeout:
+        return jsonify({'available': False, 'error': '请求超时'}), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({'available': False, 'error': str(e)}), 200
     
 @bp.route('/bot_status')
 @limiter.exempt  # 豁免速率限制：状态检查需要频繁轮询
