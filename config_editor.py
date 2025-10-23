@@ -423,8 +423,17 @@ CSRF_EXEMPT_ENDPOINTS = [
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
     """处理CSRF验证失败"""
-    app.logger.warning(f"CSRF验证失败: {request.remote_addr} - {request.endpoint}")
-    return jsonify({'error': 'CSRF验证失败，请刷新页面重试'}), 400
+    client_ip = request.remote_addr
+    is_local = client_ip in ['127.0.0.1', 'localhost', '::1', '::ffff:127.0.0.1']
+    
+    if is_local:
+        # 本地访问：友好提示（可能是重启导致的Session过期）
+        app.logger.info(f"本地CSRF验证失败（可能是重启导致）: {request.endpoint}")
+        return jsonify({'error': '登录已过期，请刷新页面重试'}), 403
+    else:
+        # 外网访问：严格处理（可能是攻击）
+        app.logger.warning(f"⚠️ 外网CSRF验证失败: {client_ip} - {request.endpoint}")
+        return jsonify({'error': '登录已过期，请刷新页面后重新登录'}), 403
 
 # ===== 速率限制配置 =====
 limiter = Limiter(
@@ -557,7 +566,19 @@ def login_required(f):
         
         if password_is_valid and not session.get('logged_in'):
             # 已设置密码但未登录
-            return redirect(url_for('main.login'))
+            # 判断是API请求还是页面请求
+            is_api_request = (
+                '/api/' in request.path or  # 兼容有无安全路径前缀
+                request.is_json or 
+                request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            )
+            
+            if is_api_request:
+                # API请求返回JSON错误
+                return jsonify({'error': '未登录', 'redirect': url_for('main.login')}), 401
+            else:
+                # 页面请求重定向到登录页
+                return redirect(url_for('main.login'))
         
         return f(*args, **kwargs)
     return decorated_function
@@ -643,7 +664,53 @@ def api_change_password():
 @login_required
 @limiter.limit("10 per minute")  # 速率限制：防止频繁启动
 def start_bot():
-    global bot_process
+    global bot_process, current_bot_pid, last_heartbeat_time
+    
+    # 增强检查：防止多进程启动
+    is_bot_running = False
+    
+    # 检查1：Flask维护的进程对象
+    if bot_process is not None and bot_process.poll() is None:
+        is_bot_running = True
+        app.logger.warning("Bot已在运行（通过bot_process检测到），拒绝重复启动")
+    
+    # 检查2：心跳记录的PID
+    if not is_bot_running and current_bot_pid:
+        try:
+            if psutil.pid_exists(current_bot_pid):
+                is_bot_running = True
+                app.logger.warning(f"Bot已在运行（PID={current_bot_pid}，通过心跳检测到），拒绝重复启动")
+        except Exception:
+            pass
+    
+    # 检查3：扫描所有bot.py进程
+    if not is_bot_running:
+        try:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    proc_name = proc.info.get('name', '').lower()
+                    
+                    # 精确判断：必须是python进程运行bot.py
+                    if cmdline and len(cmdline) >= 2 and ('python' in proc_name or 'python.exe' in proc_name):
+                        for i, arg in enumerate(cmdline):
+                            if 'bot.py' in arg and not any(exclude in ' '.join(cmdline).lower() for exclude in ['git', 'vim', 'diff', 'editor']):
+                                if i > 0 and ('python' in cmdline[0].lower() or 'python.exe' in cmdline[0].lower()):
+                                    is_bot_running = True
+                                    app.logger.warning(f"检测到已有Bot进程运行（PID={proc.info['pid']}），拒绝重复启动")
+                                    break
+                    if is_bot_running:
+                        break
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception as e:
+            app.logger.error(f"扫描Bot进程时出错: {e}")
+    
+    # 如果检测到Bot正在运行，返回错误
+    if is_bot_running:
+        return {'error': 'Bot已在运行，请先停止当前Bot', 'status': 'already_running'}, 409
+    
+    # 确认没有Bot运行后，启动新Bot
     if bot_process is None or bot_process.poll() is not None:
         # 如果目录下存在 user_timers.json 则删除
         user_timers_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'user_timers.json')
@@ -719,7 +786,7 @@ def bot_status():
     process_alive_via_flask_obj = bot_process is not None and bot_process.poll() is None
     heartbeat_is_recent = (time.time() - last_heartbeat_time) < HEARTBEAT_TIMEOUT
     
-    # 新增：检查 current_bot_pid 对应的进程是否实际存活
+    # 检查1：检查 current_bot_pid 对应的进程是否实际存活
     process_alive_via_current_pid = False
     if current_bot_pid is not None:
         try:
@@ -727,18 +794,46 @@ def bot_status():
                 process_alive_via_current_pid = True 
         except psutil.Error:
             pass
+    
+    # 检查2：扫描所有bot.py进程（防止孤儿进程）
+    # 优化：仅在必要时扫描（没有心跳且没有已知PID时）
+    process_found_via_scan = False
+    if not process_alive_via_flask_obj and not process_alive_via_current_pid and not heartbeat_is_recent:
+        # 只有在所有快速检查都失败时才进行进程扫描
+        try:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    proc_name = proc.info.get('name', '').lower()
+                    
+                    # 精确判断：必须是python进程运行bot.py
+                    if cmdline and len(cmdline) >= 2 and ('python' in proc_name or 'python.exe' in proc_name):
+                        for i, arg in enumerate(cmdline):
+                            if 'bot.py' in arg and not any(exclude in ' '.join(cmdline).lower() for exclude in ['git', 'vim', 'diff', 'editor']):
+                                if i > 0 and ('python' in cmdline[0].lower() or 'python.exe' in cmdline[0].lower()):
+                                    process_found_via_scan = True
+                                    app.logger.debug(f"Bot status: 通过扫描发现Bot进程 PID={proc.info['pid']}")
+                                    break
+                    if process_found_via_scan:
+                        break
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception as e:
+            app.logger.error(f"Bot status: 扫描进程时出错: {e}")
 
     current_status = "stopped"
 
     if process_alive_via_flask_obj:
         current_status = "running"
-    elif heartbeat_is_recent and process_alive_via_current_pid: # 优先检查通过PID确认的存活
+    elif heartbeat_is_recent and process_alive_via_current_pid:
         current_status = "running"
+    elif process_found_via_scan:
+        current_status = "running"  # 通过扫描发现进程
     elif heartbeat_is_recent and not process_alive_via_current_pid and current_bot_pid is not None:
         app.logger.warning(f"Bot status: Heartbeat recent, but PID {current_bot_pid} does not exist. Marking as stopped for now. Last heartbeat: {time.time() - last_heartbeat_time:.1f}s ago")
-        current_status = "stopped" # 倾向于保守
-    elif heartbeat_is_recent : # 心跳最近，但没有 current_bot_pid 信息 (例如 bot.py 未发送PID)
-        current_status = "running" # 保持原逻辑：心跳最近则认为运行
+        current_status = "stopped"
+    elif heartbeat_is_recent:
+        current_status = "running"
 
     return {"status": current_status}
 
@@ -975,6 +1070,60 @@ def stop_bot_process(pid_to_kill=None):
     global bot_process, last_heartbeat_time, current_bot_pid
     
     process_killed_successfully = False
+    
+    # 增强功能：如果没有指定PID，扫描并杀死所有bot.py进程
+    if pid_to_kill is None:
+        app.logger.info("未指定PID，开始扫描所有bot.py进程...")
+        killed_pids = []
+        try:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'exe']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    proc_name = proc.info.get('name', '').lower()
+                    
+                    # 精确判断：必须是python进程运行bot.py
+                    is_bot_process = False
+                    if cmdline and len(cmdline) >= 2:
+                        # 检查是否为 python.exe bot.py 或 python bot.py
+                        if 'python' in proc_name or 'python.exe' in proc_name:
+                            # 找到bot.py参数的位置
+                            for i, arg in enumerate(cmdline):
+                                if 'bot.py' in arg and not any(exclude in ' '.join(cmdline).lower() for exclude in ['git', 'vim', 'diff', 'editor']):
+                                    # 确保bot.py是作为脚本参数，而不是被其他工具处理
+                                    if i > 0 and ('python' in cmdline[0].lower() or 'python.exe' in cmdline[0].lower()):
+                                        is_bot_process = True
+                                        break
+                    
+                    if is_bot_process:
+                        pid = proc.info['pid']
+                        app.logger.info(f"发现Bot进程: PID={pid}, 命令行={' '.join(cmdline)}")
+                        try:
+                            proc.terminate()
+                            proc.wait(timeout=3)
+                            killed_pids.append(pid)
+                            app.logger.info(f"成功停止Bot进程: PID={pid}")
+                        except psutil.TimeoutExpired:
+                            proc.kill()
+                            killed_pids.append(pid)
+                            app.logger.warning(f"强制杀死Bot进程: PID={pid}")
+                        except Exception as e:
+                            app.logger.error(f"停止PID={pid}失败: {e}")
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception as e:
+            app.logger.error(f"扫描Bot进程时出错: {e}")
+        
+        if killed_pids:
+            app.logger.info(f"共停止了 {len(killed_pids)} 个Bot进程: {killed_pids}")
+            process_killed_successfully = True
+        else:
+            app.logger.info("未找到运行中的Bot进程")
+        
+        # 清理所有状态
+        bot_process = None
+        current_bot_pid = None
+        last_heartbeat_time = 0
+        return
 
     if pid_to_kill:
         try:

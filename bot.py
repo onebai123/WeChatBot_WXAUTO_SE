@@ -32,6 +32,7 @@ from threading import Timer
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import os
+import ctypes
 
 try:
     from wxautox_wechatbot import WeChat
@@ -4625,6 +4626,15 @@ def main():
         monitor_memory_usage_thread.daemon = True
         monitor_memory_usage_thread.start()
         logger.info("内存使用监控线程已启动。")
+        
+        # 防止系统休眠
+        try:
+            ES_CONTINUOUS = 0x80000000
+            ES_SYSTEM_REQUIRED = 0x00000001
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+            logger.info("已设置防止系统休眠。")
+        except Exception as e:
+            logger.warning(f"设置防止系统休眠失败: {e}")
 
         wx.KeepRunning()
 
@@ -4679,6 +4689,14 @@ def main():
             except Exception as hb_close_err:
                 logger.error(f"关闭心跳连接池时出错: {hb_close_err}")
 
+        # 恢复系统休眠设置
+        try:
+            ES_CONTINUOUS = 0x80000000
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+            logger.info("已恢复系统休眠设置。")
+        except Exception as e:
+            logger.warning(f"恢复系统休眠设置失败: {e}")
+        
         logger.info("执行最终临时文件清理...")
         clean_up_temp_files()
         logger.info("程序退出。")

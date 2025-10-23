@@ -2248,12 +2248,23 @@
                     const targetAction = status === 'stopped' ? 'start_bot' : 'stop_bot';
                     const actionResponse = await fetch(URL_PREFIX + '/' + targetAction, { 
                         method: 'POST',
-                        headers: getCSRFHeaders()
+                        headers: getCSRFHeaders({'X-Requested-With': 'XMLHttpRequest'})
                     });
 
                     if (!actionResponse.ok) {
                         const errorData = await actionResponse.json().catch(() => ({message: "操作失败，未知错误"}));
-                        throw new Error(errorData.message || `操作失败: ${actionResponse.status}`);
+                        
+                        // Session过期或CSRF失败 (401/403)
+                        if (actionResponse.status === 401 || actionResponse.status === 403) {
+                            const errorMsg = errorData.error || '登录已过期，请刷新页面';
+                            const shouldReload = confirm(errorMsg + '\n\n点击"确定"刷新页面');
+                            if (shouldReload) {
+                                window.location.reload();
+                            }
+                            return;
+                        }
+                        
+                        throw new Error(errorData.error || errorData.message || `操作失败: ${actionResponse.status}`);
                     }
 
                     const newStatusRes = await fetch(URL_PREFIX + '/bot_status?_=' + Date.now());
