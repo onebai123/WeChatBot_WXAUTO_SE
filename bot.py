@@ -32,13 +32,13 @@ from threading import Timer
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import os
-
+os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
 try:
-    from wxautox_wechatbot import WeChat
-    from wxautox_wechatbot.param import WxParam
+    from wxautox4_wechatbot import WeChat
+    from wxautox4_wechatbot.param import WxParam
     WxParam.ENABLE_FILE_LOGGER = False
     WxParam.FORCE_MESSAGE_XBIAS = True
-    os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
+    
 except ImportError:
     try:
         from wxautox import WeChat

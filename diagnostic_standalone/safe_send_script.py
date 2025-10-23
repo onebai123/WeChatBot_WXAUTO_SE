@@ -43,16 +43,16 @@ def main():
         
         # 导入微信模块
         try:
-            from wxautox_wechatbot import WeChat
+            from wxautox4_wechatbot import WeChat
             try:
-                from wxautox_wechatbot.param import WxParam
+                from wxautox4_wechatbot.param import WxParam
             except ImportError:
                 try:
-                    from wxautox_wechatbot import WxParam
+                    from wxautox4_wechatbot import WxParam
                 except ImportError:
                     WxParam = None
         except ImportError as e:
-            print(f"ERROR: 无法导入wxautox_wechatbot模块: {e}")
+            print(f"ERROR: 无法导入wxautox4_wechatbot模块: {e}")
             sys.exit(1)
         
         # 初始化

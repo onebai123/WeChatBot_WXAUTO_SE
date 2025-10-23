@@ -214,30 +214,30 @@ if !errorlevel! neq 0 (
 :: 微信自动化模块（从本地libs安装）
 :: ---------------------------
 echo "[检查] 微信自动化模块..."
-python -c "import wxautox_wechatbot" >nul 2>&1
+python -c "import wxautox4_wechatbot" >nul 2>&1
 if !errorlevel! neq 0 (
-    echo "[信息] 尝试安装wxautox_wechatbot..."
+    echo "[信息] 尝试安装wxautox4_wechatbot..."
     
     :: 优先从本地libs目录安装适配版本的wheel包
     set "wheel_found=false"
     if %minor% equ 9 (
-        if exist "..\libs\wxautox_wechatbot-39.1.1-cp39-cp39-win_amd64.whl" (
+        if exist "..\libs\wxautox4_wechatbot-39.1.1-cp39-cp39-win_amd64.whl" (
             echo "[安装] Python 3.9版本模块..."
-            python -m pip install "..\libs\wxautox_wechatbot-39.1.1-cp39-cp39-win_amd64.whl" --force-reinstall --no-deps >nul 2>&1
+            python -m pip install "..\libs\wxautox4_wechatbot-39.1.1-cp39-cp39-win_amd64.whl" --force-reinstall --no-deps >nul 2>&1
             if !errorlevel! equ 0 set "wheel_found=true"
         )
     )
     if %minor% equ 10 (
-        if exist "..\libs\wxautox_wechatbot-39.1.1-cp310-cp310-win_amd64.whl" (
+        if exist "..\libs\wxautox4_wechatbot-39.1.1-cp310-cp310-win_amd64.whl" (
             echo "[安装] Python 3.10版本模块..."
-            python -m pip install "..\libs\wxautox_wechatbot-39.1.1-cp310-cp310-win_amd64.whl" --force-reinstall --no-deps >nul 2>&1
+            python -m pip install "..\libs\wxautox4_wechatbot-39.1.1-cp310-cp310-win_amd64.whl" --force-reinstall --no-deps >nul 2>&1
             if !errorlevel! equ 0 set "wheel_found=true"
         )
     )
     if %minor% equ 11 (
-        if exist "..\libs\wxautox_wechatbot-39.1.1-cp311-cp311-win_amd64.whl" (
+        if exist "..\libs\wxautox4_wechatbot-39.1.1-cp311-cp311-win_amd64.whl" (
             echo "[安装] Python 3.11版本模块..."
-            python -m pip install "..\libs\wxautox_wechatbot-39.1.1-cp311-cp311-win_amd64.whl" --force-reinstall --no-deps >nul 2>&1
+            python -m pip install "..\libs\wxautox4_wechatbot-39.1.1-cp311-cp311-win_amd64.whl" --force-reinstall --no-deps >nul 2>&1
             if !errorlevel! equ 0 set "wheel_found=true"
         )
     )

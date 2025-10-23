@@ -44,8 +44,8 @@ except ImportError:
     OpenAI = None
 
 try:
-    from wxautox_wechatbot import WeChat
-    from wxautox_wechatbot.param import WxParam
+    from wxautox4_wechatbot import WeChat
+    from wxautox4_wechatbot.param import WxParam
 except ImportError:
     WeChat = None
     WxParam = None
@@ -431,9 +431,9 @@ class DiagnosticTool:
             
             # 检查模块是否可导入（不在子线程中初始化WeChat）
             if WeChat is None or WxParam is None:
-                raise Exception("wxautox_wechatbot模块未安装或导入失败")
+                raise Exception("wxautox4_wechatbot模块未安装或导入失败")
             
-            self.add_log("wxautox_wechatbot模块导入成功", "info")
+            self.add_log("wxautox4_wechatbot模块导入成功", "info")
             self.update_test_status('5', 'success', f'微信正常运行，检测到{len(wechat_processes)}个相关进程，模块可用')
             self.add_log("基本功能测试成功", "success")
             
@@ -457,7 +457,7 @@ class DiagnosticTool:
             
             # 检查模块是否可用（不在子线程中初始化WeChat）
             if WeChat is None or WxParam is None:
-                raise Exception("wxautox_wechatbot模块未安装或导入失败")
+                raise Exception("wxautox4_wechatbot模块未安装或导入失败")
             
             self.add_log("微信模块检查通过", "info")
             
@@ -623,7 +623,7 @@ class DiagnosticTool:
             else:
                 # 模拟测试模式
                 if WeChat is None or WxParam is None:
-                    raise Exception("wxautox_wechatbot模块未安装或导入失败")
+                    raise Exception("wxautox4_wechatbot模块未安装或导入失败")
                 
                 self.add_log("微信模块检查通过", "info")
                 
