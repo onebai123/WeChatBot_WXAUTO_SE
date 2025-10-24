@@ -975,8 +975,11 @@ def submit_config():
         for field in boolean_fields:
             new_values_for_config_py[field] = field in request.form
 
+        # 排除不应被导入覆盖的字段
+        excluded_fields = ['nickname', 'prompt_file', 'SECURITY_PATH_PREFIX']
+        
         for key_from_form in request.form:
-            if key_from_form in ['nickname', 'prompt_file'] or key_from_form in boolean_fields or key_from_form in api_key_fields:
+            if key_from_form in excluded_fields or key_from_form in boolean_fields or key_from_form in api_key_fields:
                 continue 
 
             value_from_form = request.form[key_from_form].strip()

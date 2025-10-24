@@ -540,8 +540,12 @@ logger.addHandler(console_handler)
 try:
     wx = WeChat()
 except:
-    logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信3.9版本，并且已经登录！\033[0m")
-    logger.error("\033[31m微信3.9版本下载地址：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe \033[0m")
+    if wechat_version == '4.0.5':
+        logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信4.0.5版本，并且已经登录！\033[0m")
+        logger.error("\033[31m微信4.0.5版本下载地址：https://www.123865.com/s/tB1wvd-CPaAA \033[0m")
+    else:
+        logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信3.9版本，并且已经登录！\033[0m")
+        logger.error("\033[31m微信3.9版本下载地址：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe \033[0m")
     exit(1)
 # 获取登录用户的名字
 ROBOT_WX_NAME = wx.nickname
@@ -4541,7 +4545,12 @@ def main():
             wx = WeChat()
             wx.Show()
         except:
-            logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信3.9版本，并且已经登录！\033[0m")
+            if wechat_version == '4.0.5':
+                logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信4.0.5版本，并且已经登录！\033[0m")
+                logger.error("\033[31m微信4.0.5版本下载地址：https://www.123865.com/s/tB1wvd-CPaAA \033[0m")
+            else:
+                logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信3.9版本，并且已经登录！\033[0m")
+                logger.error("\033[31m微信3.9版本下载地址：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe \033[0m")
             exit(1)
 
         for user_name in user_names:
