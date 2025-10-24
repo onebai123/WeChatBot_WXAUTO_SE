@@ -191,17 +191,28 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-:: 安装wxautox-wechatbot
+:: 安装wxautox4_wechatbot (微信4.0.5用)
+set "WHL_FILE="
+if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.1-cp39-cp39-win_amd64.whl"
+if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.1-cp310-cp310-win_amd64.whl"
+if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.1-cp311-cp311-win_amd64.whl"
+if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.1-cp312-cp312-win_amd64.whl"
+
+if defined WHL_FILE (
+    if exist "!WHL_FILE!" (
+        python -m pip install "!WHL_FILE!" --force-reinstall
+    )
+)
+
+:: 安装wxautox-wechatbot (微信3.9用)
 python -m pip install -U -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple wxautox-wechatbot
 if !errorlevel! neq 0 (
-    echo "⚠️ wxautox-wechatbot 安装失败,尝试其他镜像源..."
     python -m pip install -U wxautox-wechatbot
 )
 
-:: 安装wxauto
+:: 安装wxauto (备用)
 python -m pip install -U -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple wxauto
 if !errorlevel! neq 0 (
-    echo "⚠️ wxauto 安装失败,尝试其他镜像源..."
     python -m pip install -U wxauto
 )
 
