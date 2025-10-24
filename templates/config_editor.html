@@ -1586,50 +1586,6 @@
             }
         }
 
-        // 微信版本切换功能
-        document.getElementById('wechatVersionSelect')?.addEventListener('change', function() {
-            const newVersion = this.value;
-            const oldVersion = this.value === '3.9' ? '4.0.5' : '3.9';
-            
-            // 显示风险提示弹窗
-            const versionInfo = newVersion === '3.9' ? {
-                title: '切换到微信 3.9 版本',
-                features: '✅ 稳定，功能强大\\n✅ 支持群聊、拍一拍等完整功能',
-                risks: '⚠️ 容易登不上\\n💡 解决办法：先登录新版微信，再退出登录旧版'
-            } : {
-                title: '切换到微信 4.0.5 版本 (BAT测试)',
-                features: '✅ 最新版本兼容',
-                risks: '⚠️ 刚兼容，仅支持对话、拍一拍等基础功能\\n⚠️ 不支持群聊等高级功能\\n⚠️ 不稳定，存在风险'
-            };
-            
-            if (confirm(`${versionInfo.title}\\n\\n${versionInfo.features}\\n\\n${versionInfo.risks}\\n\\n确认切换吗？`)) {
-                // 保存版本选择
-                fetch(URL_PREFIX + '/save_wechat_version', {
-                    method: 'POST',
-                    headers: getCSRFHeaders({
-                        'Content-Type': 'application/json'
-                    }),
-                    body: JSON.stringify({ version: newVersion })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert(`✅ 已切换到微信 ${newVersion} 版本\\n\\n重启Bot后生效`);
-                    } else {
-                        alert('切换失败: ' + (data.message || '未知错误'));
-                        this.value = oldVersion;
-                    }
-                })
-                .catch(err => {
-                    alert('切换失败: ' + err);
-                    this.value = oldVersion;
-                });
-            } else {
-                // 取消切换，恢复原值
-                this.value = oldVersion;
-            }
-        });
-
         document.addEventListener('DOMContentLoaded', function () {
             // 检查是否需要弹出密码设置弹窗（开启外网访问但未设置密码）
             checkPasswordRequirement();
