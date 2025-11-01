@@ -2175,11 +2175,24 @@ def send_reply(user_id, sender_name, username, original_merged_message, reply, i
                     logger.error(f"撤回机器人消息失败: {str(e)}")
                 time.sleep(random.uniform(2.0, 3.0))  # 撤回后延迟
             else:
+                # 验证发送内容（只处理一次）
+                content_clean = content.strip() if content else ''
+                if not content_clean:
+                    logger.error(f"尝试发送空内容给 {user_id}，已跳过")
+                    continue
+                if len(content_clean) <= 3 and content_clean.upper() in ['AV', 'A', 'V']:
+                    logger.error(f"检测到异常内容 '{content_clean}'，拒绝发送给 {user_id}")
+                    continue
+                
                 # 文本消息发送三次重试
                 success = False
                 for attempt in range(3):
                     try:
-                        if wx.SendMsg(msg=content, who=user_id):
+                        logger.info(f"[DEBUG] 准备发送内容给 {user_id}: {repr(content[:100])}")
+                        time.sleep(0.15)  # 短暂延时，让微信窗口稳定
+                        send_result = wx.SendMsg(msg=content, who=user_id)
+                        logger.info(f"[DEBUG] SendMsg返回结果: {send_result}, 内容长度: {len(content)}")
+                        if send_result:
                             logger.info(f"分段回复 {idx+1}/{len(message_actions)} 给 {sender_name}: {content[:50]}...")
                             if ENABLE_MEMORY and not is_system_message:
                                 log_ai_reply_to_memory(username, content)
