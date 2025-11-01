@@ -33,7 +33,7 @@ from typing import Tuple
 import sys
 import datetime
 import time
-
+os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
 logger = logging.getLogger(__name__)
 
 class Updater:
@@ -73,6 +73,7 @@ class Updater:
         "https://gh.noki.eu.org/",      # 899ms,4/4成功
         "https://gh-proxy.com/",        # 1350ms,4/4成功
         "https://gitpro.a3e.top/",      # 1350ms,4/4成功,官方维护
+        "https://gitpro.v1chat.cc/",     # 1350ms,4/4成功,官方维护
         "https://hub.tcpmini.news/",    # 1972ms,4/4成功,官方维护
         "https://tvv.tw/",              # 最快812ms,4/4成功
         "https://gh.noki.icu/",         # 1432ms,4/4成功

@@ -1135,9 +1135,9 @@ def generate_prompt():
             "\n...。"
             "\n\n# 性格"
             "\n...。"
-            "\n\n# 输出示例"
-            "\n...\...\..."
-            "\n...\..."
+            "\n# 输出示例"
+            "\n...\\...\\..."
+            "\n...\\..."
             "\n\n# 喜好"
             "\n...。\n"
         )  # 固定提示词
@@ -1975,7 +1975,7 @@ def get_npc_settings():
                 app.logger.error(f"读取NPC配置文件失败: {read_error}")
                 return jsonify({'error': f'读取配置失败: {str(read_error)}'}), 500
         else:
-            app.logger.info("NPC配置文件不存在，返回空配置")
+            #app.logger.info("NPC配置文件不存在，返回空配置")
             return jsonify({
                 'selected_npcs': [],
                 'npc_settings': {}

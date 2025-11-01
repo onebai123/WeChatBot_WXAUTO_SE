@@ -28,7 +28,7 @@ if not defined wxversion (
     echo "⚠️4. 您使用的是便携版微信"
     echo.
     echo "⚠️程序将跳过微信版本检查并继续运行。"
-    echo "⚠️如果程序启动后无法控制微信,请下载微信3.9版本：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe"
+    echo "⚠️如果程序启动后无法控制微信,请下载微信4.1.2版本：https://weixin.qq.com/updates?platform=windows&version=4.1.2"
     echo.
     echo "🔄3秒后自动继续..."
     timeout /t 3 /nobreak >nul
@@ -39,7 +39,7 @@ if not defined wxversion (
 if not defined wxversion (
     echo "⚠️警告：无法获取微信版本号！"
     echo "⚠️程序将跳过微信版本检查并继续运行,但建议检查微信安装状态。"
-    echo "⚠️如果程序启动后无法控制微信,请下载微信3.9版本：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe"
+    echo "⚠️如果程序启动后无法控制微信,请下载微信4.1.2版本：https://weixin.qq.com/updates?platform=windows&version=4.1.2"
     echo.
     echo "🔄3秒后自动继续..."
     timeout /t 3 /nobreak >nul
@@ -54,23 +54,14 @@ for /f "tokens=1 delims=." %%a in ("!wxversion!") do (
 :: 只判断主版本
 if !major! lss 3 (
     echo "❌当前微信版本 !wxversion!,版本过低！"
-    echo "⚠️请下载微信3.9版本"
-    echo "⚠️下载地址：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe"
+    echo "⚠️请下载微信4.1.2版本"
+    echo "⚠️下载地址：https://weixin.qq.com/updates?platform=windows&version=4.1.2"
     echo.
     echo "🔄如果您确信已经安装了正确版本的微信,请按下键盘任意键继续运行程序,否则关闭窗口退出。"
     pause
     goto :check_python
 )
-if !major! geq 4 (
-    echo "❌当前微信版本 !wxversion!,版本过高！"
-    echo "⚠️软件暂不支持微信4.x及以上版本,可能导致兼容性问题"
-    echo "⚠️请下载微信3.9版本"
-    echo "⚠️下载地址：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe"
-    echo.
-    echo "🔄 如果您确信已经安装了正确版本的微信,请按下键盘任意键继续运行程序,否则关闭窗口退出。"
-    pause
-    goto :check_python
-)
+rem 移除4.x版本检查，现在支持4.1.2版本
 
 echo "✅ 微信版本检查通过：!wxversion!"
 
@@ -191,19 +182,48 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-:: 安装wxautox-wechatbot
-python -m pip install -U -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple wxautox-wechatbot
-if !errorlevel! neq 0 (
-    echo "⚠️ wxautox-wechatbot 安装失败,尝试其他镜像源..."
-    python -m pip install -U wxautox-wechatbot
+:: ---------------------------
+:: 卸载通用版本，安装定制版wxautox4_wechatbot
+:: ---------------------------
+echo "🔄 卸载旧版微信控制包..."
+python -m pip uninstall wxautox-wechatbot wxauto -y >nul 2>&1
+
+echo "🔄 安装新版本wxautox4_wechatbot..."
+set "WHL_FILE="
+if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp39-cp39-win_amd64.whl"
+if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp310-cp310-win_amd64.whl"
+if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp311-cp311-win_amd64.whl"
+if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp312-cp312-win_amd64.whl"
+
+if defined WHL_FILE (
+    if exist "!WHL_FILE!" (
+        echo "📦 安装文件: !WHL_FILE!"
+        python -m pip install "!WHL_FILE!" --force-reinstall
+        if !errorlevel! equ 0 (
+            echo "✅ 新版本wxautox4_wechatbot安装成功"
+            echo "🔍 验证安装版本..."
+            python -c "import wxautox4_wechatbot; print('版本:', wxautox4_wechatbot.__version__ if hasattr(wxautox4_wechatbot, '__version__') else '40.1.2')"
+        ) else (
+            echo "❌ 新版本wxautox4_wechatbot安装失败"
+        )
+    ) else (
+        echo "⚠️ 警告: 新版本安装文件不存在: !WHL_FILE!"
+    )
+) else (
+    echo "⚠️ 警告: 无法确定Python版本对应的定制版安装包"
 )
 
-:: 安装wxauto
-python -m pip install -U -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple wxauto
-if !errorlevel! neq 0 (
-    echo "⚠️ wxauto 安装失败,尝试其他镜像源..."
-    python -m pip install -U wxauto
-)
+:: 安装wxautox-wechatbot (旧版本微信用) - 定制版已注释
+rem python -m pip install -U -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple wxautox-wechatbot
+rem if !errorlevel! neq 0 (
+rem     python -m pip install -U wxautox-wechatbot
+rem )
+
+:: 安装wxauto (备用) - 定制版已注释
+rem python -m pip install -U -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple wxauto
+rem if !errorlevel! neq 0 (
+rem     python -m pip install -U wxauto
+rem )
 
 echo "✅ 所有依赖安装成功！"
 

@@ -31,17 +31,18 @@ from threading import Timer
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import os
+os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
 try:
-    from wxautox_wechatbot import WeChat
-    from wxautox_wechatbot.param import WxParam
+    from wxautox4_wechatbot import WeChat
+    from wxautox4_wechatbot.param import WxParam
     WxParam.ENABLE_FILE_LOGGER = False
     WxParam.FORCE_MESSAGE_XBIAS = True
-    os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
+
 except ImportError:
     try:
-        from wxautox import WeChat
+        from wxautox4_wechatbot import WeChat
     except ImportError:
-        from wxauto import WeChat
+        from wxautox4_wechatbot import WeChat
 
 # 生成用户昵称列表和prompt映射字典
 user_names = [entry[0] for entry in LISTEN_LIST]
@@ -434,10 +435,21 @@ logger.addHandler(console_handler)
 
 # 获取微信窗口对象
 try:
+    logger.info("\033[32m正在初始化微信接口...\033[0m")
     wx = WeChat()
-except:
-    logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信3.9版本，并且已经登录！\033[0m")
-    logger.error("\033[31m微信3.9版本下载地址：https://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe \033[0m")
+    logger.info("\033[32m微信接口初始化成功！\033[0m")
+except Exception as e:
+    logger.error("\033[31m========================================\033[0m")
+    logger.error("\033[31m初始化微信接口失败！\033[0m")
+    logger.error(f"\033[31m错误信息: {e}\033[0m")
+    logger.error("\033[31m========================================\033[0m")
+    logger.error("\033[33m请按以下步骤排查问题：\033[0m")
+    logger.error(f"\033[33m1. 检查微信版本：确保安装的是微信4.1.2版本\033[0m")
+    logger.error("\033[33m2. 如窗口未找到/NoneType报错，请重启微信：完全退出微信后重新打开\033[0m")
+    logger.error("\033[31m========================================\033[0m")
+    logger.error(f"\033[36m微信4.1.2版本下载地址：\033[0m")
+    logger.error(f"\033[36mhttps://weixin.qq.com/updates?platform=windows&version=4.1.2\033[0m")
+    logger.error("\033[31m========================================\033[0m")
     exit(1)
 # 获取登录用户的名字
 ROBOT_WX_NAME = wx.nickname
@@ -4188,13 +4200,13 @@ def main():
         # --- 初始化 ---
         logger.info("\033[32m初始化微信接口和清理临时文件...\033[0m")
         clean_up_temp_files()
-        global wx
-        try:
-            wx = WeChat()
-            wx.Show()
-        except:
-            logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信3.9版本，并且已经登录！\033[0m")
-            exit(1)
+        # global wx
+        # try:
+        #     wx = WeChat()
+        #     wx.Show()
+        # except:
+        #     logger.error(f"\033[31m无法初始化微信接口，请确保您安装的是微信3.9版本，并且已经登录！\033[0m")
+        #     exit(1)
 
         for user_name in user_names:
             if user_name == ROBOT_WX_NAME:
