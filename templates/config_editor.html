@@ -2676,7 +2676,9 @@
                 const response = await fetch('/import_config', { method: 'POST', body: formData });
                 const result = await response.json();
                 if (response.ok) {
-                    alert(result.message || '配置导入成功，请刷新页面查看导入的参数。');
+                    let message = result.message || '配置导入成功！';
+                    message += '\n\n⚠️ 请立即重启Run.bat使导入生效！！！';
+                    alert(message);
                     closeImportModal();
                     window.location.reload();
                 } else {
@@ -2730,6 +2732,7 @@
                 
                 if (response.ok) {
                     let message = result.message || '完整目录导入成功！';
+                    message += '\n\n⚠️ 需重启Run.bat使导入生效！！！';
                     if (result.backup_location) {
                         message += '\n\n备份位置: ' + result.backup_location;
                     }
@@ -4304,7 +4307,10 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
 
     <div id="importModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 1060;">
         <div style="background-color: white; width: 90%; max-width: 550px; margin: 10vh auto; padding: 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
-            <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">导入数据</h3>
+            <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">
+                导入数据
+                <span style="font-size: 14px; color: #f44336; font-weight: bold;">（导入后必须重启Run.bat生效！！！）</span>
+            </h3>
             
             <!-- 导入类型选择 -->
             <div style="margin-bottom: 20px;">
