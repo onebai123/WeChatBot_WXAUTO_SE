@@ -198,7 +198,7 @@ if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp312-cp312-w
 if defined WHL_FILE (
     if exist "!WHL_FILE!" (
         echo "📦 安装文件: !WHL_FILE!"
-        python -m pip install "!WHL_FILE!" --force-reinstall
+        python -m pip install "!WHL_FILE!" --no-deps --force-reinstall
         if !errorlevel! equ 0 (
             echo "✅ 新版本wxautox4_wechatbot安装成功"
             echo "🔍 验证安装版本..."
