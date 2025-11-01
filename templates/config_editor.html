@@ -2676,9 +2676,8 @@
                 const response = await fetch('/import_config', { method: 'POST', body: formData });
                 const result = await response.json();
                 if (response.ok) {
-                    let message = result.message || '配置导入成功！';
-                    message += '\n\n⚠️ 请立即重启Run.bat使导入生效！！！';
-                    alert(message);
+                    alert(result.message || '配置导入成功！');
+                    alert('✅ 导入已成功！\n\n💡 建议重启一次Run.bat\n\n原因：如果旧配置的端口不是5000，\n或修改了其他启动配置，\n需要重启Run.bat才能生效。');
                     closeImportModal();
                     window.location.reload();
                 } else {
@@ -2732,11 +2731,11 @@
                 
                 if (response.ok) {
                     let message = result.message || '完整目录导入成功！';
-                    message += '\n\n⚠️ 需重启Run.bat使导入生效！！！';
                     if (result.backup_location) {
                         message += '\n\n备份位置: ' + result.backup_location;
                     }
                     alert(message);
+                    alert('✅ 导入已成功！\n\n💡 建议重启一次Run.bat\n\n原因：如果旧配置的端口不是5000，\n或者修改了其他启动配置，\n需要重启Run.bat才能生效。');
                     closeImportModal();
                     window.location.reload();
                 } else {
