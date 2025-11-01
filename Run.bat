@@ -136,21 +136,21 @@ if %errorlevel% neq 0 (
 :: ---------------------------
 echo "🚀 正在检测可用镜像源..."
 
-:: 阿里源
-python -m pip install --upgrade pip --index-url https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
-if !errorlevel! equ 0 (
-    set "SOURCE_URL=https://mirrors.aliyun.com/pypi/simple/"
-    set "TRUSTED_HOST=mirrors.aliyun.com"
-    echo "✅ 使用阿里源"
-    goto :INSTALL
-)
-
 :: 清华源
 python -m pip install --upgrade pip --index-url https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
 if !errorlevel! equ 0 (
     set "SOURCE_URL=https://pypi.tuna.tsinghua.edu.cn/simple"
     set "TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn"
     echo "✅ 使用清华源"
+    goto :INSTALL
+)
+
+:: 阿里源
+python -m pip install --upgrade pip --index-url https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+if !errorlevel! equ 0 (
+    set "SOURCE_URL=https://mirrors.aliyun.com/pypi/simple/"
+    set "TRUSTED_HOST=mirrors.aliyun.com"
+    echo "✅ 使用阿里源"
     goto :INSTALL
 )
 

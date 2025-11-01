@@ -3752,9 +3752,25 @@ if __name__ == '__main__':
     # 在启动服务器前检查端口是否被占用，若占用则结束该进程
     kill_process_using_port(PORT)
 
-    print(f"\033[31m重要提示：\r\n若您的浏览器没有自动打开网页端，请手动访问http://localhost:{config.get('PORT', '5000')}/ \r\n \033[0m")
+    print("\033[32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
+    print("\033[32m✅ 配置编辑器启动成功！\033[0m")
+    print("\033[32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
+    print("")
+    print(f"\033[36m📡 访问地址: http://localhost:{config.get('PORT', '5000')}/\033[0m")
+    print("\033[90m   → 浏览器将自动打开，如未打开请手动访问上述地址\033[0m")
     if config.get('ENABLE_LOGIN_PASSWORD', False):
-        print(f"\033[31m您已启用登录密码，密码为 {config.get('LOGIN_PASSWORD', '未设置')} 请勿泄露给其它人！\r\n \033[0m")
+        print("")
+        print(f"\033[33m🔐 登录密码: {config.get('LOGIN_PASSWORD', '未设置')}\033[0m")
+        print("\033[90m   → 请妥善保管，勿泄露给他人\033[0m")
+    print("")
+    print("\033[33m💡 常见问题：\033[0m")
+    print("\033[90m   问题1: 点击Start Bot没反应，提示微信窗口找不到\033[0m")
+    print("\033[90m        → 解决: 重启一次微信\033[0m")
+    print("")
+    print("\033[90m   问题2: 导入配置后出现404心跳报错日志\033[0m")
+    print("\033[90m        → 解决: 重启一次Run.bat\033[0m")
+    print("")
+    print("\033[32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
     
     # 在启动服务器前设置定时器打开浏览器
     def open_browser():

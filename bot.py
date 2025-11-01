@@ -31,6 +31,7 @@ from threading import Timer
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import os
+import ctypes
 os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
 try:
     from wxautox4_wechatbot import WeChat
@@ -439,17 +440,27 @@ try:
     wx = WeChat()
     logger.info("\033[32m微信接口初始化成功！\033[0m")
 except Exception as e:
-    logger.error("\033[31m========================================\033[0m")
+    logger.error("\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
     logger.error("\033[31m初始化微信接口失败！\033[0m")
-    logger.error(f"\033[31m错误信息: {e}\033[0m")
-    logger.error("\033[31m========================================\033[0m")
-    logger.error("\033[33m请按以下步骤排查问题：\033[0m")
-    logger.error(f"\033[33m1. 检查微信版本：确保安装的是微信4.1.2版本\033[0m")
-    logger.error("\033[33m2. 如窗口未找到/NoneType报错，请重启微信：完全退出微信后重新打开\033[0m")
-    logger.error("\033[31m========================================\033[0m")
-    logger.error(f"\033[36m微信4.1.2版本下载地址：\033[0m")
-    logger.error(f"\033[36mhttps://weixin.qq.com/updates?platform=windows&version=4.1.2\033[0m")
-    logger.error("\033[31m========================================\033[0m")
+    logger.error(f"\033[31m错误: {e}\033[0m")
+    logger.error("\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
+    logger.error("")
+    logger.error("\033[33m📋 解决方案：\033[0m")
+    logger.error("")
+    logger.error("\033[36m方案1: 重启微信\033[0m")
+    logger.error("\033[90m   → 适用场景: 出现'NoneType'或'窗口未找到'错误\033[0m")
+    logger.error("\033[90m   → 操作步骤: 完全退出微信 → 重新打开 → 登录后再运行\033[0m")
+    logger.error("")
+    logger.error("\033[36m方案2: 重启Run.bat\033[0m")
+    logger.error("\033[90m   → 适用场景: 刚导入配置，出现404错误\033[0m")
+    logger.error("\033[90m   → 操作步骤: 关闭当前窗口 → 重新运行Run.bat\033[0m")
+    logger.error("")
+    logger.error("\033[36m方案3: 检查微信版本\033[0m")
+    logger.error("\033[90m   → 适用场景: 上述方法无效，可能版本不兼容\033[0m")
+    logger.error("\033[90m   → 要求版本: 微信4.1.2\033[0m")
+    logger.error(f"\033[90m   → 下载地址: https://weixin.qq.com/updates?platform=windows&version=4.1.2\033[0m")
+    logger.error("")
+    logger.error("\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
     exit(1)
 # 获取登录用户的名字
 ROBOT_WX_NAME = wx.nickname
@@ -4287,6 +4298,15 @@ def main():
         monitor_memory_usage_thread.start()
         logger.info("内存使用监控线程已启动。")
 
+                # 防止系统休眠
+        try:
+            ES_CONTINUOUS = 0x80000000
+            ES_SYSTEM_REQUIRED = 0x00000001
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+            logger.info("已设置防止系统休眠。")
+        except Exception as e:
+            logger.warning(f"设置防止系统休眠失败: {e}")
+
         wx.KeepRunning()
 
         while True:
@@ -4329,6 +4349,15 @@ def main():
                  logger.info("异步HTTP日志处理器已关闭。")
             except Exception as log_close_err:
                  logger.error(f"关闭异步日志处理器时出错: {log_close_err}")
+
+
+        # 恢复系统休眠设置
+        try:
+            ES_CONTINUOUS = 0x80000000
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+            logger.info("已恢复系统休眠设置。")
+        except Exception as e:
+            logger.warning(f"恢复系统休眠设置失败: {e}")
 
         logger.info("执行最终临时文件清理...")
         clean_up_temp_files()
