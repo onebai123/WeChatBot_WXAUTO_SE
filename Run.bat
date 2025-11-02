@@ -159,7 +159,7 @@ if !errorlevel! neq 0 (
 :: 卸载通用版本，安装定制版wxautox4_wechatbot
 :: ---------------------------
 echo "🔄 卸载旧版微信控制包..."
-python -m pip uninstall wxautox-wechatbot wxauto -y >nul 2>&1
+python -m pip uninstall wxautox-wechatbot wxautox4-wechatbot -y >nul 2>&1
 
 echo "🔄 安装新版本wxautox4_wechatbot..."
 set "WHL_FILE="
