@@ -2188,6 +2188,7 @@ def send_reply(user_id, sender_name, username, original_merged_message, reply, i
                 success = False
                 for attempt in range(3):
                     try:
+                        time.sleep(random.uniform(4.0, 6.0))
                         logger.info(f"[DEBUG] 准备发送内容给 {user_id}: {repr(content[:100])}")
                         time.sleep(0.15)  # 短暂延时，让微信窗口稳定
                         send_result = wx.SendMsg(msg=content, who=user_id)
