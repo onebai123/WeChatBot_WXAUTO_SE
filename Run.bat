@@ -132,49 +132,22 @@ if %errorlevel% neq 0 (
 )
 
 :: ---------------------------
-:: 选择最快的 pip 源
+:: 升级 pip（静默）
 :: ---------------------------
-echo "🚀 正在检测可用镜像源..."
-
-:: 清华源
-python -m pip install --upgrade pip --index-url https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
-if !errorlevel! equ 0 (
-    set "SOURCE_URL=https://pypi.tuna.tsinghua.edu.cn/simple"
-    set "TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn"
-    echo "✅ 使用清华源"
-    goto :INSTALL
-)
-
-:: 阿里源
-python -m pip install --upgrade pip --index-url https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
-if !errorlevel! equ 0 (
-    set "SOURCE_URL=https://mirrors.aliyun.com/pypi/simple/"
-    set "TRUSTED_HOST=mirrors.aliyun.com"
-    echo "✅ 使用阿里源"
-    goto :INSTALL
-)
-
-:: 官方源
-python -m pip install --upgrade pip --index-url https://pypi.org/simple
-if !errorlevel! equ 0 (
-    set "SOURCE_URL=https://pypi.org/simple"
-    set "TRUSTED_HOST="
-    echo "✅ 使用官方源"
-    goto :INSTALL
-)
-
-echo "❌ 无可用镜像源,请检查网络"
-pause
-exit /b 1
+echo "🚀 升级 pip..."
+python -m pip install --upgrade pip --index-url https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com >nul 2>&1
 
 :INSTALL
 echo "🔄 正在安装依赖..."
+echo "📦 使用多源策略：阿里源(主) + 清华源(备) + 官方源(兜底)"
 
-if "!TRUSTED_HOST!"=="" (
-    python -m pip install -r requirements.txt -f ./libs --index-url !SOURCE_URL!
-) else (
-    python -m pip install -r requirements.txt -f ./libs --index-url !SOURCE_URL! --trusted-host !TRUSTED_HOST!
-)
+:: 使用多源安装：减少网络拥堵
+python -m pip install -r requirements.txt -f ./libs ^
+    --index-url https://mirrors.aliyun.com/pypi/simple/ ^
+    --extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple ^
+    --extra-index-url https://pypi.org/simple ^
+    --trusted-host mirrors.aliyun.com ^
+    --trusted-host pypi.tuna.tsinghua.edu.cn
 
 if !errorlevel! neq 0 (
     echo "❌ 安装依赖失败,请检查网络或 requirements.txt 是否存在"
@@ -190,10 +163,10 @@ python -m pip uninstall wxautox-wechatbot wxauto -y >nul 2>&1
 
 echo "🔄 安装新版本wxautox4_wechatbot..."
 set "WHL_FILE="
-if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp39-cp39-win_amd64.whl"
-if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp310-cp310-win_amd64.whl"
-if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp311-cp311-win_amd64.whl"
-if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.3-cp312-cp312-win_amd64.whl"
+if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp39-cp39-win_amd64.whl"
+if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp310-cp310-win_amd64.whl"
+if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp311-cp311-win_amd64.whl"
+if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp312-cp312-win_amd64.whl"
 
 if defined WHL_FILE (
     if exist "!WHL_FILE!" (

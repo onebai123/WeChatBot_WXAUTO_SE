@@ -1,6 +1,5 @@
 flask
 flask-cors
-sqlalchemy~=2.0.37
 comtypes
 Pillow
 typing-extensions
