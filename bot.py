@@ -2156,6 +2156,7 @@ def send_reply(user_id, sender_name, username, original_merged_message, reply, i
                 success = False
                 for attempt in range(3):
                     try:
+                        time.sleep(random.uniform(3.0, 5.0))
                         if wx.SendMsg(msg=content, who=user_id):
                             logger.info(f"分段回复 {idx+1}/{len(message_actions)} 给 {sender_name}: {content[:50]}...")
                             if ENABLE_MEMORY and not is_system_message:
