@@ -39,7 +39,7 @@ try:
     os.environ["PROJECT_NAME"] = 'iwyxdxl/WeChatBot_WXAUTO_SE'
 except ImportError:
     try:
-        from wxautox import WeChat
+        from wxautox_wechatbot import WeChat
     except ImportError:
         from wxauto import WeChat
 

@@ -92,6 +92,63 @@
         .header-bar .header-title {
             flex-grow: 1;
         }
+        
+        /* 问号图标样式 - 透明设计 */
+        .help-bell {
+            position: relative;
+            background: transparent;
+            border: 2px solid transparent;
+            font-size: 26px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 6px 12px;
+            color: #667eea;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: 10px;
+            border-radius: 50%;
+            line-height: 1;
+        }
+        .help-bell:hover {
+            color: #5568d3;
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: scale(1.15);
+            animation: questionBounce 0.6s ease-in-out;
+        }
+        .help-bell:active {
+            transform: scale(0.95);
+        }
+        @keyframes questionBounce {
+            0%, 100% { transform: scale(1.15) translateY(0); }
+            25% { transform: scale(1.2) translateY(-5px); }
+            50% { transform: scale(1.18) translateY(0); }
+            75% { transform: scale(1.16) translateY(-3px); }
+        }
+        .help-bell .badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 10px;
+            height: 10px;
+            box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.3);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+                box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.3);
+            }
+            50% { 
+                opacity: 0.8; 
+                transform: scale(1.2);
+                box-shadow: 0 0 0 4px rgba(244, 67, 54, 0.1);
+            }
+        }
+        
         .header-bar .buttons {
             display: flex;
             align-items: center;
@@ -925,6 +982,141 @@
         .context-user-actions {
             display: flex;
             gap: 10px;
+        }
+
+        /* 常见问题弹窗样式 */
+        .faq-modal {
+            display: none;
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            width: 400px;
+            max-width: 90vw;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            z-index: 2000;
+            transform-origin: top right;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .faq-modal.show {
+            display: block;
+            animation: expandModal 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        .faq-modal.hiding {
+            animation: shrinkModal 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
+        @keyframes expandModal {
+            0% {
+                opacity: 0;
+                transform: scale(0) rotate(15deg);
+            }
+            50% {
+                transform: scale(0.5) rotate(5deg);
+            }
+            80% {
+                transform: scale(1.05) rotate(-2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        @keyframes shrinkModal {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) rotate(-20deg);
+            }
+        }
+        .faq-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faq-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: white;
+        }
+        .faq-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .faq-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .faq-content {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .faq-item {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .faq-item:hover {
+            background: #e9ecef;
+            transform: translateX(4px);
+        }
+        .faq-item-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .faq-item-content {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .faq-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .faq-link:hover {
+            text-decoration: underline;
+        }
+        .faq-footer {
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+        .faq-footer p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+        }
+        .faq-footer strong {
+            color: #667eea;
+            font-size: 14px;
         }
     </style>
 
@@ -3536,7 +3728,7 @@
     <button id="mobileMenuToggle">☰</button> 
 
     <div class="header-bar">
-        <div class="header-title"><h1>WeChatBot配置编辑器 v3.24.5</h1></div>
+        <div class="header-title"><h1>WeChatBot配置编辑器 v3.24.6</h1></div>
         <div class="buttons">
             <button id="botButton" class="nav-button">Start Bot</button>
             <button type="submit" form="configForm" id="saveConfigButton" class="nav-button" style="background-color: #4CAF50;">保存配置</button>
@@ -3545,6 +3737,7 @@
             <a href="https://ciu4ws3raf1.feishu.cn/docx/EgE7d5JvtopzmIxYZMKcLU2xnge?from=from_copylink"
                class="nav-button" target="_blank" style="background-color: #03A9F4;">帮助文档</a>
            <button id="oneKeyDiagnosticButton" class="nav-button" style="background-color:#f44336;">报错一键检测</button>
+           <button id="helpBellButton" class="help-bell" title="常见问题">❓<span class="badge"></span></button>
 <script>
 document.getElementById('oneKeyDiagnosticButton').addEventListener('click', async function() {
     try {
@@ -4909,6 +5102,152 @@ document.getElementById('oneKeyDiagnosticButton').addEventListener('click', asyn
             }
         }
 
+    </script>
+
+    <!-- 常见问题 & 解决方案弹窗 -->
+    <div id="faqModal" class="faq-modal">
+        <div class="faq-header">
+            <h3> 常见问题 & 解决方案</h3>
+            <button class="faq-close" onclick="closeFaqModalButton()">&times;</button>
+        </div>
+        <div class="faq-content">
+            <div class="faq-item">
+                <div class="faq-item-title">❌ 微信登录不上？提示版本太低怎么办？</div>
+                <div class="faq-item-content">
+                    <strong style="color: #4caf50;">💡 前提说明</strong><br>
+                    • 3.9微信为稳定版本，功能完善，推荐使用<br>
+                    • 4.1.2新版微信内测中，仅部分功能，非必要不要尝试<br>
+                    <br>
+                    <strong>方案一：安装4.12微信内测版Bot（推荐！）</strong><br>
+                    • <strong style="color: #f44336;">注意：未提示版本低请勿下载</strong><br>
+                    • <strong style="color: #f44336;">注意：部署Bot的电脑需一直联网、不息屏、不断网</strong><br>
+                    • <a href="https://lcn9jodjzyl0.feishu.cn/wiki/A5kiwkX6NiWHwEkF0N3cRGKcnEn" target="_blank" class="faq-link">📖 查看4.12内测版安装教程</a><br>
+                    <br>
+                    <strong>方案二：双版本微信登录</strong><br>
+                    • 临时解决，需手动操作<br>
+                    • 步骤：下载2个版本微信 → 先登录新版 → 退出 → 登录旧版<br>
+                    <a href="https://s.apifox.cn/2e75fa29-1b5e-4e5c-b604-c89e95a6555d/7534473m0" target="_blank" class="faq-link">📖 查看详细教程</a>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-item-title"> Gemini空回复、ext、回复慢怎么办？</div>
+                <div class="faq-item-content">
+                    <strong>解决方案：</strong> 
+                    <a href="https://s.apifox.cn/2e75fa29-1b5e-4e5c-b604-c89e95a6555d/7534473m0" target="_blank" class="faq-link">查看详细教程</a>
+                </div>
+            </div>
+ 
+        </div>
+        <div class="faq-footer">
+            <p><strong> 以上是常见问题解决方案</strong></p>
+            <p>以上无法解决请加Q群: <strong>1031636957</strong></p>
+        </div>
+    </div>
+
+    <!-- 常见问题弹窗控制脚本 -->
+    <script>
+        // FAQ弹窗控制
+        let faqAutoCloseTimer = null;
+        let faqIsAnimating = false;
+        
+        function showFaqModal() {
+            if (faqIsAnimating) return;
+            
+            const modal = document.getElementById('faqModal');
+            faqIsAnimating = true;
+            
+            // 移除可能存在的hiding类
+            modal.classList.remove('hiding');
+            
+            // 显示并添加show类触发展开动画
+            modal.style.display = 'block';
+            // 强制重排以确保动画触发
+            modal.offsetHeight;
+            modal.classList.add('show');
+            
+            // 动画完成后重置标志
+            setTimeout(() => {
+                faqIsAnimating = false;
+            }, 500);
+            
+            // 清除之前的定时器
+            if (faqAutoCloseTimer) {
+                clearTimeout(faqAutoCloseTimer);
+            }
+            
+            // 10秒后自动关闭
+            faqAutoCloseTimer = setTimeout(() => {
+                closeFaqModal();
+            }, 20000);
+        }
+        
+        function closeFaqModal() {
+            if (faqIsAnimating) return;
+            
+            const modal = document.getElementById('faqModal');
+            faqIsAnimating = true;
+            
+            // 移除show类，添加hiding类触发收缩动画
+            modal.classList.remove('show');
+            modal.classList.add('hiding');
+            
+            // 等待收缩动画完成后隐藏元素
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.classList.remove('hiding');
+                faqIsAnimating = false;
+            }, 400);
+            
+            // 移除badge提示
+            const badge = document.querySelector('.help-bell .badge');
+            if (badge) {
+                badge.style.display = 'none';
+            }
+            
+            if (faqAutoCloseTimer) {
+                clearTimeout(faqAutoCloseTimer);
+                faqAutoCloseTimer = null;
+            }
+        }
+        
+        // 点击关闭按钮
+        function closeFaqModalButton() {
+            closeFaqModal();
+        }
+        
+        // 问号按钮点击事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const helpBellButton = document.getElementById('helpBellButton');
+            if (helpBellButton) {
+                helpBellButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const modal = document.getElementById('faqModal');
+                    if (modal.classList.contains('show')) {
+                        closeFaqModal();
+                    } else {
+                        showFaqModal();
+                    }
+                });
+            }
+            
+            // 页面加载完成后自动显示弹窗（每次刷新都显示）
+            setTimeout(() => {
+                showFaqModal();
+            }, 1000);
+        });
+        
+        // 点击弹窗外部关闭
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('faqModal');
+            const bellButton = document.getElementById('helpBellButton');
+            
+            if (modal.classList.contains('show') && 
+                !modal.contains(e.target) && 
+                !bellButton.contains(e.target)) {
+                closeFaqModal();
+            }
+        });
     </script>
 
 </body>

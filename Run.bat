@@ -198,11 +198,13 @@ if !errorlevel! neq 0 (
     python -m pip install -U wxautox-wechatbot
 )
 
-:: 安装wxauto
-python -m pip install -U -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple wxauto
+:: 安装wxauto（从GitHub，防止安装失败中断脚本）
+echo "正在从GitHub安装 wxauto..."
+python -m pip install -U git+https://github.com/cluic/wxauto 2>nul
 if !errorlevel! neq 0 (
-    echo "⚠️ wxauto 安装失败,尝试其他镜像源..."
-    python -m pip install -U wxauto
+    echo "⚠️ wxauto 从GitHub安装失败,跳过（不影响主程序运行）"
+) else (
+    echo "✅ wxauto 安装成功"
 )
 
 echo "✅ 所有依赖安装成功！"
