@@ -1821,16 +1821,18 @@ def handle_wxauto_message(msg, who):
                 for attempt in range(3):
                     try:
                         img_path = msg.download()
-                        if img_path:
+                        if img_path and os.path.exists(str(img_path)):
                             logger.info(f"图片下载成功 (第{attempt + 1}次尝试): {img_path}")
                             break
                         else:
-                            logger.warning(f"图片下载失败 (第{attempt + 1}次尝试)")
+                            logger.warning(f"图片下载返回空路径 (第{attempt + 1}次尝试)")
+                    except AttributeError as attr_err:
+                        logger.warning(f"控件属性错误 (第{attempt + 1}次): {attr_err}")
                     except Exception as e:
-                        logger.warning(f"图片下载异常 (第{attempt + 1}次尝试): {e}")
+                        logger.warning(f"图片下载异常 (第{attempt + 1}次): {e}")
                     
-                    if attempt < 2:  # 不是最后一次尝试
-                        time.sleep(0.5)  # 等待0.5秒后重试
+                    if attempt < 2:
+                        time.sleep(1.5)  # 增加等待时间到1.5秒
                 
                 if img_path:
                     is_emoji = False
@@ -1838,6 +1840,7 @@ def handle_wxauto_message(msg, who):
                     logger.info(f"检测到图片消息，准备识别: {img_path}")
                 else:
                     logger.error("图片下载失败，已重试3次")
+                    logger.error("\033[31m⚠️ 图片识别功能异常，请查看解决方案：https://s.apifox.cn/b2f07354-bce7-4959-a803-97ed82c508ff/7649190m0\033[0m")
             else:
                 logger.info("检测到图片消息，但图片识别功能已禁用。")
 
