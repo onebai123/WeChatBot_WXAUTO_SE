@@ -139,13 +139,12 @@ python -m pip install --upgrade pip --index-url https://mirrors.aliyun.com/pypi/
 
 :INSTALL
 echo "🔄 正在安装依赖..."
-echo "📦 使用多源策略：阿里源(主) + 清华源(备) + 官方源(兜底)"
+echo "📦 使用多源策略：阿里源(主) + 清华源(备)"
 
 :: 使用多源安装：减少网络拥堵
 python -m pip install -r requirements.txt -f ./libs ^
     --index-url https://mirrors.aliyun.com/pypi/simple/ ^
     --extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple ^
-    --extra-index-url https://pypi.org/simple ^
     --trusted-host mirrors.aliyun.com ^
     --trusted-host pypi.tuna.tsinghua.edu.cn
 
@@ -163,10 +162,10 @@ python -m pip uninstall wxautox-wechatbot wxautox4-wechatbot -y >nul 2>&1
 
 echo "🔄 安装新版本wxautox4_wechatbot..."
 set "WHL_FILE="
-if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp39-cp39-win_amd64.whl"
-if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp310-cp310-win_amd64.whl"
-if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp311-cp311-win_amd64.whl"
-if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.5-cp312-cp312-win_amd64.whl"
+if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.6-cp39-cp39-win_amd64.whl"
+if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.6-cp310-cp310-win_amd64.whl"
+if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.6-cp311-cp311-win_amd64.whl"
+if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.6-cp312-cp312-win_amd64.whl"
 
 if defined WHL_FILE (
     if exist "!WHL_FILE!" (
