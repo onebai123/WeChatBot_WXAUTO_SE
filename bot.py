@@ -458,7 +458,7 @@ except Exception as e:
     logger.error("\033[36m方案3: 检查微信版本\033[0m")
     logger.error("\033[90m   → 适用场景: 上述方法无效，可能版本不兼容\033[0m")
     logger.error("\033[90m   → 要求版本: 微信4.1.2\033[0m")
-    logger.error(f"\033[90m   → 下载地址: https://weixin.qq.com/updates?platform=windows&version=4.1.2\033[0m")
+    logger.error(f"\033[90m   → 下载地址: https://www.123865.com/s/tB1wvd-LWaAA\033[0m")
     logger.error("")
     logger.error("\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
     exit(1)

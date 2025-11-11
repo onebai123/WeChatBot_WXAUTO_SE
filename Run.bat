@@ -28,7 +28,7 @@ if not defined wxversion (
     echo "⚠️4. 您使用的是便携版微信"
     echo.
     echo "⚠️程序将跳过微信版本检查并继续运行。"
-    echo "⚠️如果程序启动后无法控制微信,请下载微信4.1.2版本：https://weixin.qq.com/updates?platform=windows&version=4.1.2"
+    echo "⚠️如果程序启动后无法控制微信,请下载微信4.1.2版本：https://www.123865.com/s/tB1wvd-LWaAA"
     echo.
     echo "🔄3秒后自动继续..."
     timeout /t 3 /nobreak >nul
@@ -39,7 +39,7 @@ if not defined wxversion (
 if not defined wxversion (
     echo "⚠️警告：无法获取微信版本号！"
     echo "⚠️程序将跳过微信版本检查并继续运行,但建议检查微信安装状态。"
-    echo "⚠️如果程序启动后无法控制微信,请下载微信4.1.2版本：https://weixin.qq.com/updates?platform=windows&version=4.1.2"
+    echo "⚠️如果程序启动后无法控制微信,请下载微信4.1.2版本：https://www.123865.com/s/tB1wvd-LWaAA"
     echo.
     echo "🔄3秒后自动继续..."
     timeout /t 3 /nobreak >nul
@@ -55,7 +55,7 @@ for /f "tokens=1 delims=." %%a in ("!wxversion!") do (
 if !major! lss 3 (
     echo "❌当前微信版本 !wxversion!,版本过低！"
     echo "⚠️请下载微信4.1.2版本"
-    echo "⚠️下载地址：https://weixin.qq.com/updates?platform=windows&version=4.1.2"
+    echo "⚠️下载地址：https://www.123865.com/s/tB1wvd-LWaAA"
     echo.
     echo "🔄如果您确信已经安装了正确版本的微信,请按下键盘任意键继续运行程序,否则关闭窗口退出。"
     pause
