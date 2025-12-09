@@ -162,10 +162,10 @@ python -m pip uninstall wxautox-wechatbot wxautox4-wechatbot -y >nul 2>&1
 
 echo "🔄 安装新版本wxautox4_wechatbot..."
 set "WHL_FILE="
-if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.8-cp39-cp39-win_amd64.whl"
-if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.8-cp310-cp310-win_amd64.whl"
-if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.8-cp311-cp311-win_amd64.whl"
-if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.8-cp312-cp312-win_amd64.whl"
+if "!py_minor!"=="9" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.9-cp39-cp39-win_amd64.whl"
+if "!py_minor!"=="10" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.9-cp310-cp310-win_amd64.whl"
+if "!py_minor!"=="11" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.9-cp311-cp311-win_amd64.whl"
+if "!py_minor!"=="12" set "WHL_FILE=libs\wxautox4_wechatbot-40.1.9-cp312-cp312-win_amd64.whl"
 
 if defined WHL_FILE (
     if exist "!WHL_FILE!" (
