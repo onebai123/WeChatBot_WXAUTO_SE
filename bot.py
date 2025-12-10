@@ -4275,7 +4275,7 @@ def main():
         global program_start_time, last_received_message_timestamp
         program_start_time = time.time()
         last_received_message_timestamp = time.time()
-        if ENABLE_SCHEDULED_RESTART:
+        if False and ENABLE_SCHEDULED_RESTART:  # 暂时禁用定时重启功能
             restart_checker_thread = threading.Thread(target=scheduled_restart_checker, name="ScheduledRestartChecker")
             restart_checker_thread.daemon = True # 设置为守护线程，主程序退出时它也会退出
             restart_checker_thread.start()
