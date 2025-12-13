@@ -1029,7 +1029,7 @@ def call_chat_api_with_retry(messages_to_send, user_id, max_retries=2, is_summar
             elif "service unavailable" in error_info:
                 logger.error("\033[31m错误：API 服务商反馈服务器繁忙，请稍后再试！\033[0m")
             elif "sensitive words detected" in error_info or "sensitive" in error_info:
-                logger.error("\033[31m错误：Prompt或消息中含有敏感词，无法生成回复，请联系API服务商！\033[0m")
+                logger.error("\033[31m错误：Prompt或消息中含有敏感词，无法生成回复，请清理临时记忆！\033[0m")
                 if ENABLE_SENSITIVE_CONTENT_CLEARING:
                     logger.warning(f"已开启敏感词自动清除上下文功能，开始清除用户 {user_id} 的聊天上下文和临时记忆")
                     clear_chat_context(user_id)
