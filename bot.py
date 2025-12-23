@@ -960,7 +960,7 @@ def call_chat_api_with_retry(messages_to_send, user_id, max_retries=2, is_summar
                 # 检查API是否返回了空的消息内容
                 message_content = response.choices[0].message.content
                 if message_content is None:
-                    logger.error(f"API返回了空的信息，可能是因为触发了安全检查机制，请修改Prompt并清空上下文再试 (ID: {user_id})")
+                    logger.error(f"\033[31mAPI返回了空的信息，可能是因为触发了安全检查机制，请修改Prompt并清空上下文再试 (ID: {user_id})\033[0m")
                     logger.error(f"错误请求消息体模型: {MODEL}")
                     logger.error(json.dumps(messages_to_send, ensure_ascii=False, indent=2))
                     logger.error(f"完整响应对象: {response}")
@@ -972,14 +972,14 @@ def call_chat_api_with_retry(messages_to_send, user_id, max_retries=2, is_summar
                             return filtered_content
             else:
                 # 记录错误日志 - 无选择项
-                logger.error(f"API返回了空的选择项 (ID: {user_id})")
+                logger.error(f"\033[31mAPI返回了空的选择项 (ID: {user_id})\033[0m")
                 logger.error(f"错误请求消息体模型: {MODEL}")
                 logger.error(json.dumps(messages_to_send, ensure_ascii=False, indent=2))
                 logger.error(f"完整响应对象: {response}")
 
             # 如果到这里说明内容为空或过滤后为空
             if response.choices and response.choices[0].message.content is not None:
-                logger.error(f"API返回了空的内容或内容被过滤 (ID: {user_id})")
+                logger.error(f"\033[31mAPI返回了空的内容或内容被过滤 (ID: {user_id})\033[0m")
             logger.error(f"错误请求消息体模型: {MODEL}")
             logger.error(json.dumps(messages_to_send, ensure_ascii=False, indent=2))
 
