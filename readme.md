@@ -7,7 +7,7 @@ https://github.com/KouriChat/KouriChat
 # 项目来源说明：
 本项目由 iwyxdxl 基于原项目 KouriChat 进行修改和二次开发创建，
 原项目版权归属 umaru 所有。
-欢迎加入 QQ 技术交流 群：677421546
+# 欢迎加入 QQ 交流群：677421546
 # 版本号
 v3.25
 # 功能说明
