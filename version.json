@@ -1,5 +1,5 @@
 {
-    "version": "3.24.6",
-    "last_update": "2025-11-02",
+    "version": "3.24.7",
+    "last_update": "2026-01-16",
     "description": "修复wxauto安装bug\n新增微信版本过低解决方案\n本版本为3.9微信，已添加4.12微信内测版链接可选参与"
 }
