@@ -478,6 +478,10 @@ is_sending_message = False
 user_last_msg = {}  # {user_id: msg对象} 存储每个用户最后发送的消息对象
 bot_last_sent_msg = {}  # {user_id: wx.GetLastMessage()} 存储机器人发送给每个用户的最后一条消息
 
+# --- 消息去重相关全局变量 ---
+last_processed_time_map = {}  # {who: 时间戳} 每个聊天窗口最后处理的消息时间
+last_message_content_map = {}  # {who: 内容} 每个聊天窗口最后处理的消息内容
+
 # --- 定时重启相关全局变量 ---
 program_start_time = 0.0 # 程序启动时间戳
 last_received_message_timestamp = 0.0 # 最后一次活动（收到/处理消息）的时间戳
@@ -1229,6 +1233,24 @@ def message_listener(msg, chat):
     elif msgattr != 'friend':
         logger.info(f"非好友消息，已忽略。")
         return
+
+    # --- 消息去重检查 ---
+    global last_processed_time_map, last_message_content_map
+    message_time = getattr(msg, 'time', 0) or 0
+    # 时间戳去重：跳过已处理过的旧消息
+    if message_time and message_time < last_processed_time_map.get(who, 0):
+        logger.info(f"消息时间戳 {message_time} 早于最后处理时间 {last_processed_time_map.get(who, 0)}，跳过重复消息。")
+        return
+    # 内容+时间戳联合去重：仅当时间戳和内容同时相同时才视为重复（防止 wxauto 重复拉取同一条消息）
+    if (original_content and message_time
+            and original_content == last_message_content_map.get(who, "")
+            and message_time == last_processed_time_map.get(who, 0)):
+        logger.info(f'聊天窗口 "{who}" 收到重复消息（时间戳和内容均相同），已跳过。')
+        return
+    # 更新去重状态
+    if message_time:
+        last_processed_time_map[who] = message_time
+    last_message_content_map[who] = original_content
 
     if msgtype == 'voice':
         voicetext = msg.to_text()
